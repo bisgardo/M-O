@@ -5,9 +5,9 @@
 
 # HELPERS FUNCTIONS #
 
-_MO_suffix() {
-    local -r dir=$1
-    command echo _MO_$(command echo "$dir" | md5)
+MO_suffix() {
+    local -r dir="${1:-"$dir"}"
+    command echo "_MO_$(command echo "$dir" | md5)"
 }
 
 # OVERRIDE AND RESTORE GOPATH #

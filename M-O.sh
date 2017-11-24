@@ -105,77 +105,88 @@ _MO_is_ancestor() {
 # Arg 2: event
 # Arg 3: action
 _MO_handle_action() {
+    # API defines the following stable variables: dir, file, event, on_enter, on_leave, func, and action.
     local -r dir="$1"
     local -r file="$2"
     local -r event="$3"
     
+    # TODO Consider moving the rest of function to plugin/extension structure.
+    #      This is only one of several reasonable ways of handling such an event
+    #      (others being "default actions" and file per event).
+    #      We might as well allow user code to customize it; adding features per subtree!
+    #      The must be a code implementation that enables variable override/recovery, though.
+    
     if [ ! -d "$dir" ]; then
-        MO_echo "warning: $event non-existent dir '$dir'"
+        MO_echo "warning: $event event in non-existent dir '$dir'"
+    fi
+    
+    # Exposed variables. Note that even unused variables must be declared
+    # in order to prevent leakage from local (i.e. function) scope.
+    local on_enter=''
+    local on_leave=''
+    
+    if [ -n "$_MO_handle_action_begin" ]; then
+        eval ${_MO_handle_action_begin} # No quoting.
     fi
     
     if [ -f "$file" ]; then
-        # Exposed variables. Note that even unused variables must be declared
-        # in order to prevent leakage from local (i.e. function) scope.
-        local on_enter
-        local on_leave
         source "$file"
-        
-        local -r func="on_$event"
-        local -r action="${!func}"
-        
-        if [ -n "$action" ]; then
-            _MO_echo_action "$dir" "$event" "$action"
-            _MO_eval_action ${action}
-            return
-        fi
     fi
     
-    if [ "$MO_LOG_LEVEL" -ge 2 ]; then
+    local -r func="on_$event"
+    local -r action="${!func}"
+    
+    if [ -n "$action" ]; then
+        _MO_echo_action "$dir" "$event" "$action"
+        _MO_eval_action ${action} # No quoting.
+    elif [ "$MO_LOG_LEVEL" -ge 2 ]; then
         MO_echo "($event $dir)"
+    fi
+    
+    if [ -n "$_MO_handle_action_end" ]; then
+        eval ${_MO_handle_action_end} # No quoting.
     fi
 }
 
 # Arg 1: dir
 _MO_enter() {
     local -r dir="${1%/}"
-    
-    _MO_handle_action "$dir" "$dir/$MO_FILENAME" enter
-    
+    _MO_handle_action "$dir" "$dir/$MO_FILENAME" 'enter'
     MO_CUR_DIR="$dir"
 }
 
 # Arg 1: dir
 _MO_leave() {
     local -r dir="${1%/}"
-    
-    _MO_handle_action "$dir" "$dir/$MO_FILENAME" leave
-    
+    _MO_handle_action "$dir" "$dir/$MO_FILENAME" 'leave'
     MO_CUR_DIR="$(_MO_dirname "$dir")"
 }
 
-# Arg 1: new_dir (new directory)
+# Arg 1: target_dir (new directory)
 _MO_update() {
-    local -r new_dir="${1%/}"
+    local -r target_dir="${1%/}"
     local -r x=$?
     
     # Common case.
-    if [ "$MO_CUR_DIR" = "$new_dir" ]; then
+    if [ "$MO_CUR_DIR" = "$target_dir" ]; then
         if [ "$MO_LOG_LEVEL" -ge 1 ]; then
             MO_echo "(staying in $MO_CUR_DIR)"
         fi
         return $x
     fi
     
-    _MO_update_begin "$new_dir"
+    if [ -n "$_MO_update_begin" ]; then
+        eval $_MO_update_begin
+    fi
     
     # Traverse from $old_dir up the tree ("leaving" directories on the way)
-    # until $MO_CUR_DIR is an ancestor (i.e. prefix) of $new_dir.
-    until _MO_is_ancestor "$MO_CUR_DIR" "$new_dir"; do
+    # until $MO_CUR_DIR is an ancestor (i.e. prefix) of $target_dir.
+    until _MO_is_ancestor "$MO_CUR_DIR" "$target_dir"; do
         _MO_leave "$MO_CUR_DIR"
     done
     
-    # Relative path from $MO_CUR_DIR to $new_dir.
-    local relative_path="${new_dir#"$MO_CUR_DIR"}"
+    # Relative path from $MO_CUR_DIR to $target_dir.
+    local -r relative_path="${target_dir#"$MO_CUR_DIR"}"
     
     if [ -n "$relative_path" ]; then
         local dir
@@ -185,7 +196,9 @@ _MO_update() {
         _MO_enter "$MO_CUR_DIR/$dir"
     fi
     
-    _MO_update_end "$new_dir"
+    if [ -n "$_MO_update_end" ]; then
+        eval $_MO_update_end
+    fi
     
     return $?
 }
@@ -194,15 +207,12 @@ _MO_update() {
 # EXTENSION HOOKS #
 ###################
 
-# Overwriteable hook for running code before update.
-_MO_update_begin() {
-    :
-}
+# TODO Instead of hooks, the functions should just be extendable like M-O actions!
 
-# Overwriteable hook for running code after update.
-_MO_update_end() {
-    :
-}
+# _MO_update_begin:        For running code before update.
+# _MO_update_end:          For running code after update.
+# _MO_handle_action_begin: For running code before action handling.
+# _MO_handle_action_end:   For running code after action handling.
 
 #####################
 # REGISTER FUNCTION #
@@ -221,7 +231,7 @@ _MO_join_stmts() {
     local -r left="$1"
     local -r right="$2"
     
-    local sep=
+    local sep=''
     if [ -n "$left" -a -n "$right" ]; then
         sep='; '
     fi
@@ -254,6 +264,8 @@ MO_inject() {
     on_leave="$(_MO_join_stmts "$on_leave" "$leave_stmt")"
 }
 
+# TODO Move to helpers (though it is more generic than the other ones...).
+
 # Arg 1: var (variable to override)
 # Arg 2: val (value that var is set to for the duration of the override)
 # Arg 3: suffix (suffix to append to var for storing the original value for restoration)
@@ -265,13 +277,17 @@ MO_override_var() {
     # TODO Take (renamed) $tmp directly instead of $suffix.
     local -r tmp="$var$suffix"
     
-    local -r varVal="${!var}"
-    local -r tmpVal="${!tmp}"
+    # TODO Don't actually set tmp if there's nothing to restore...
+    local -r var_val="${!var}"
+    local -r tmp_val="${!tmp}"
     
-    # TODO Make new function for joining message to command.
-    local enter_stmt="MO_echo \"Overriding $var='$val'\"; $tmp='$varVal'; $var='$val'"
-    # TODO Can do only if $tmpVal is defined (i.e. if its value is not empty)?
-    local leave_stmt="MO_echo \"Restoring $var='$tmpVal'\"; $var='$tmpVal'; unset $tmp"
+    # TODO Make new function for joining message to command - and make messaging optional.
+    # TODO Also, break into separate (generic) override/restore functions?
+    local enter_stmt="MO_echo \"Overriding $var='$val'\"; $tmp='$var_val'; $var='$val'"
+    # TODO Can do only if $tmp_val is defined (i.e. if its value is not empty)?
+    local leave_stmt="MO_echo \"Restoring $var='$tmp_val'\"; $var='$tmp_val'; unset $tmp"
+    
+    # TODO Save some kind of entry such that the override chain of variables can be listed.
     
     MO_extend "$enter_stmt" "$leave_stmt"
 }
