@@ -26,25 +26,35 @@ helper functions for the following use cases are available:
 
 M-O should be loaded and registered as part of your dotfiles setup.
 
+The project is written to work for both bash (3+) and zsh.
+The only difference in usage between the shells is which "register" file to source.
+
 ### Bash
 
 In `.bashrc` and/or `.bash_profile`:
 
     MO_PATH=/path/to/M-O
     source "$MO_PATH/M-O.sh"
+    source "$MO_PATH/extensions/action-helpers.sh" # Optional; see below.
+    source "$MO_PATH/extensions/default-action.sh" # Optional; see below.
     source "$MO_PATH/register.bash"
-    source "$MO_PATH/extensions.sh" # Optional; see below.
 
 ### Zsh
 
-*Not yet supported due to minor incompatibilities with Bash*
+In e.g. `.zshrc`:
+
+    MO_PATH=/path/to/M-O
+    source "$MO_PATH/M-O.sh"
+    source "$MO_PATH/extensions/action-helpers.sh" # Optional; see below.
+    source "$MO_PATH/extensions/default-action.sh" # Optional; see below.
+    source "$MO_PATH/register.zsh"
 
 ## Entering and leaving
 
 A directory is "entered" when the working directory is changed
 from somewhere outside of its subtree to somewhere inside of it.
 The directory is "left" when the working directory is changed back
- to the outside of its subtree.
+to the outside of its subtree.
 
 This means that when the current working directory changes,
 M-O will execute actions corresponding to the following events:
