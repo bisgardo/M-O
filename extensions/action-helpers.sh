@@ -25,16 +25,16 @@ MO_set_gopath_default() {
 # ACTIVATE AND DEACTIVATE PYTHON ENVIRONMENT #
 
 MO_python_env() {
-    local -r path="$1"
+    local -r env_path="$1"
     
-    local -r enter_stmt="MO_echo 'Activating Python virtualenv'; source '$path'"
+    local -r enter_stmt="MO_echo 'Activating Python virtualenv'; source '$env_path'"
     local -r leave_stmt="MO_echo 'Deactivating Python virtualenv'; deactivate"
     
     MO_extend "$enter_stmt" "$leave_stmt"
 }
 
 MO_python_env_default() {
-    local -r env=${1:-.}
+    local -r env="${1:-.}"
     MO_python_env "$dir/$env/bin/activate"
 }
 

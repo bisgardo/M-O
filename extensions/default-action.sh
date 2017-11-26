@@ -1,6 +1,7 @@
 # Extend action handling with functionality for default actions.
 
-export MO_DEFAULT_ACTION="$MO_DEFAULT_ACTION"
+# Is not exported to ensure that subshells build their state from scratch.
+MO_DEFAULT_ACTION="$MO_DEFAULT_ACTION"
 
 _MO_handle_default_action() {
     if [ "$MO_DEFAULT_ACTION" ]; then

@@ -12,7 +12,8 @@
 
 # The directory that was the current directory (symlinks resolved)
 # the last time that _MO_update() was called.
-export MO_CUR_DIR="$MO_CUR_DIR"
+# Is not exported to ensure that subshells build their state from scratch.
+MO_CUR_DIR="$MO_CUR_DIR"
 
 # The file containing enter/leave actions
 export MO_FILENAME="${MO_FILENAME:-.M-O}"
@@ -27,16 +28,16 @@ export MO_LOG_LEVEL="${MO_LOG_LEVEL:-0}"
  # Print a M-O head as a prefix for a echoed message.
 _MO_echo_head() {
     # Bold foreground and black background.
-    command echo -ne "\033[1;40m"
+    echo -ne "\033[1;40m"
     
     # "[": Bold white foreground on black background.
-    command echo -ne "\033[97m["
+    echo -ne "\033[97m["
     # "--": Bold light yellow foreground on black background.
-    command echo -ne "\033[33m--"
+    echo -ne "\033[33m--"
     # "]": Bold white foreground on default background.
-    command echo -ne "\033[97m]"
+    echo -ne "\033[97m]"
     # Reset.
-    command echo -en "\033[0m"
+    echo -en "\033[0m"
 }
 
 # Print a message prefixed with a M-O head prefix.
@@ -134,7 +135,7 @@ _MO_handle_action() {
     fi
     
     local -r func="on_$event"
-    local -r action="${!func}"
+    local -r action="$(eval command echo "\$$func")" # Hacky variant of "${!func}" that works in both bash and zsh.
     
     if [ -n "$action" ]; then
         _MO_echo_action "$dir" "$event" "$action"
@@ -278,8 +279,8 @@ MO_override_var() {
     local -r tmp="$var$suffix"
     
     # TODO Don't actually set tmp if there's nothing to restore...
-    local -r var_val="${!var}"
-    local -r tmp_val="${!tmp}"
+    local -r var_val="$(eval command echo "\$$var")" # Hacky variant of "${!var}" that works in both bash and zsh.
+    local -r tmp_val="$(eval command echo "\$$tmp")" # Hacky variant of "${!tmp}" that works in both bash and zsh.
     
     # TODO Make new function for joining message to command - and make messaging optional.
     # TODO Also, break into separate (generic) override/restore functions?
