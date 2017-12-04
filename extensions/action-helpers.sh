@@ -14,12 +14,11 @@ MO_suffix() {
 
 MO_set_gopath() {
     local -r value="$1"
-    local -r suffix="$2"
-    MO_override_var GOPATH "$value" "$suffix"
+    MO_override_var GOPATH "$value"
 }
 
 MO_set_gopath_default() {
-    MO_set_gopath "$dir" "$(_MO_suffix "$dir")"
+    MO_set_gopath "$dir"
 }
 
 # ACTIVATE AND DEACTIVATE PYTHON ENVIRONMENT #
@@ -30,7 +29,7 @@ MO_python_env() {
     local -r enter_stmt="MO_echo 'Activating Python virtualenv'; source '$env_path'"
     local -r leave_stmt="MO_echo 'Deactivating Python virtualenv'; deactivate"
     
-    MO_extend "$enter_stmt" "$leave_stmt"
+    MO_extend_action "$enter_stmt" "$leave_stmt"
 }
 
 MO_python_env_default() {
@@ -50,5 +49,5 @@ MO_ensure_nodejs_version() {
     
     # TODO Add restore statement.
     local enter_stmt="MO_echo 'Ensuring that node.js is at version $node_version';_ensure_nodejs_version $node_version"
-    MO_extend "$enter_stmt" ''
+    MO_extend_action "$enter_stmt" ''
 }

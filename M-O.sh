@@ -25,6 +25,9 @@ export MO_LOG_LEVEL="${MO_LOG_LEVEL:-0}"
 # PRINTING FUNCTIONS #
 ######################
 
+# TODO Try to write with printf such that echo can be aliased
+#      (cannot use `command echo` because that doesn't work with color codes in zsh).
+
  # Print a M-O head as a prefix for a echoed message.
 _MO_echo_head() {
     # Bold foreground and black background.
@@ -32,7 +35,7 @@ _MO_echo_head() {
     
     # "[": Bold white foreground on black background.
     echo -ne "\033[97m["
-    # "--": Bold light yellow foreground on black background.
+    # "--": Bold yellow foreground on black background.
     echo -ne "\033[33m--"
     # "]": Bold white foreground on default background.
     echo -ne "\033[97m]"
@@ -40,10 +43,61 @@ _MO_echo_head() {
     echo -en "\033[0m"
 }
 
+# Print an angry M-O head as a prefix for a errchoed message.
+_MO_echo_angry_head() {
+   # Bold foreground and black background.
+   echo -ne "\033[1;40m"
+   
+   # "[": Bold white foreground on black background.
+   echo -ne "\033[97m["
+   # "--": Bold red foreground on black background.
+   echo -ne "\033[31m><"
+   # "]": Bold white foreground on default background.
+   echo -ne "\033[97m]"
+   # Reset.
+   echo -en "\033[0m"
+}
+
+# Print a curious M-O head as a prefix for a errchoed message.
+_MO_echo_curious_head() {
+   # Bold foreground and black background.
+   echo -ne "\033[1;40m"
+   
+   # "[": Bold white foreground on black background.
+   echo -ne "\033[97m["
+   # "--": Bold red foreground on black background.
+   echo -ne "\033[36m=="
+   # "]": Bold white foreground on default background.
+   echo -ne "\033[97m]"
+   # Reset.
+   echo -en "\033[0m"
+}
+
 # Print a message prefixed with a M-O head prefix.
 MO_echo() {
-    _MO_echo_head
-    echo " $@"
+    local -r msg="$@"
+    if [ -n "$msg" ]; then
+        _MO_echo_head
+        echo " $msg"
+    fi
+}
+
+# Print a message prefixed with an angry M-O head prefix.
+MO_errcho() {
+    local -r msg="$@"
+    if [ -n "$msg" ]; then
+        _MO_echo_angry_head
+        >&2 echo " $msg"
+    fi
+}
+
+# Print a message prefixed with a curious M-O head prefix.
+MO_debucho() {
+    local -r msg="$@"
+    if [ -n "$msg" ]; then
+        _MO_echo_curious_head
+        >&2 echo " $msg"
+    fi
 }
 
 # Arg 1: dir
@@ -81,7 +135,9 @@ _MO_dirname() {
 }
 
 _MO_eval_action() {
-    eval $@ || echo "Failed evaluating command: $@"
+    #alias print="MO_echo '>'"
+    eval $@ || MO_errcho "Failed evaluating command: $@"
+    #unalias print
 }
 
 # Arg 1: ancestor
@@ -118,7 +174,7 @@ _MO_handle_action() {
     #      The must be a code implementation that enables variable override/recovery, though.
     
     if [ ! -d "$dir" ]; then
-        MO_echo "warning: $event event in non-existent dir '$dir'"
+        MO_ercho "$event event in non-existent dir '$dir'"
     fi
     
     # Exposed variables. Note that even unused variables must be declared
@@ -135,7 +191,7 @@ _MO_handle_action() {
     fi
     
     local -r func="on_$event"
-    local -r action="$(eval command echo "\$$func")" # Hacky variant of "${!func}" that works in both bash and zsh.
+    local -r action="$(eval command echo "\$$func")" # Like "${!func}" but works in both bash and zsh.
     
     if [ -n "$action" ]; then
         _MO_echo_action "$dir" "$event" "$action"
@@ -245,7 +301,7 @@ _MO_join_stmts() {
 # Arg 1: enter_stmt ("enter" statement)
 # Arg 2: leave_stmt ("leave" statement)
 # Extend the return variables by prepending enter_stmt to on_enter and appending leave_stmt to on_leave.
-MO_extend() {
+MO_extend_action() {
     local -r enter_stmt="$1"
     local -r leave_stmt="$2"
     
@@ -257,7 +313,31 @@ MO_extend() {
 # Arg 2: leave_stmt ("leave" statement)
 # Extend the return variables by appending enter_stmt to on_enter and
 # prepending leave_stmt to on_leave.
-MO_inject() {
+MO_inject_action() {
+    local -r enter_stmt="$1"
+    local -r leave_stmt="$2"
+    
+    on_enter="$(_MO_join_stmts "$enter_stmt" "$on_enter")"
+    on_leave="$(_MO_join_stmts "$on_leave" "$leave_stmt")"
+}
+
+# Arg 1: enter_stmt ("enter" statement)
+# Arg 2: leave_stmt ("leave" statement)
+# Extend the return variables by prepending enter_stmt to on_enter and
+# leave_stmt to on_leave.
+MO_prepend_action() {
+    local -r enter_stmt="$1"
+    local -r leave_stmt="$2"
+    
+    on_enter="$(_MO_join_stmts "$enter_stmt" "$on_enter")"
+    on_leave="$(_MO_join_stmts "$leave_stmt" "$on_leave")"
+}
+
+# Arg 1: enter_stmt ("enter" statement)
+# Arg 2: leave_stmt ("leave" statement)
+# Extend the return variables by appending enter_stmt to on_enter and
+# leave_stmt to on_leave.
+MO_append_action() {
     local -r enter_stmt="$1"
     local -r leave_stmt="$2"
     
@@ -267,28 +347,57 @@ MO_inject() {
 
 # TODO Move to helpers (though it is more generic than the other ones...).
 
+# TODO On boot time, check if md5 is installed and print warning if it isn't.
+#      Maybe even let this function default to a simpler/slower version.
+MO_tmp_var_name() {
+    local -r var="$1"
+    local -r input="$2"
+    
+    command echo "${var}_MO_$(command echo "$input" | md5)"
+}
+
 # Arg 1: var (variable to override)
 # Arg 2: val (value that var is set to for the duration of the override)
-# Arg 3: suffix (suffix to append to var for storing the original value for restoration)
+# Arg 3: enter_msg (message to output on enter)
 MO_override_var() {
     local -r var="$1"
     local -r val="$2"
-    local -r suffix="$3"
     
-    # TODO Take (renamed) $tmp directly instead of $suffix.
-    local -r tmp="$var$suffix"
+    local enter_msg="$3"
+    local leave_msg="$4"
     
-    # TODO Don't actually set tmp if there's nothing to restore...
-    local -r var_val="$(eval command echo "\$$var")" # Hacky variant of "${!var}" that works in both bash and zsh.
-    local -r tmp_val="$(eval command echo "\$$tmp")" # Hacky variant of "${!tmp}" that works in both bash and zsh.
+    # Allow caller to set tmp by 
+    local tmp="$_mo_tmp_var_name"
+    [ -n "$tmp" ] || tmp="$(MO_tmp_var_name "$var" "$dir")"
     
-    # TODO Make new function for joining message to command - and make messaging optional.
-    # TODO Also, break into separate (generic) override/restore functions?
-    local enter_stmt="MO_echo \"Overriding $var='$val'\"; $tmp='$var_val'; $var='$val'"
-    # TODO Can do only if $tmp_val is defined (i.e. if its value is not empty)?
-    local leave_stmt="MO_echo \"Restoring $var='$tmp_val'\"; $var='$tmp_val'; unset $tmp"
+    # Since all local variables are lower case by convention, requiring that
+    # overridden variable isn't purely lower case ensures that such
+    # collisions cannot happen.
+    if [ "$(echo "$var" | tr '[:upper:]' '[:lower:]')" = "$var" ]; then
+        MO_errcho "Cannot override purely lower case variable '$var'"
+        return 1
+    fi
+    if [ "$(echo "$tmp" | tr '[:upper:]' '[:lower:]')" = "$tmp" ]; then
+        MO_errcho "Cannot back up '$var' in purely lower case variable '$tmp'"
+        return 1
+    fi
+    
+    local -r var_val="$(eval command echo "\$$var")" # Like "${!var}" but works in both bash and zsh.
+    local -r tmp_val="$(eval command echo "\$$tmp")" # Like "${!tmp}" but works in both bash and zsh.
+    
+    # TODO Only override if var_val is set.
+    local enter_stmt="$tmp='$var_val'; $var='$val'"
+    # TODO If tmp isn't set, unset $var instead.
+    local leave_stmt="$var='$tmp_val'; unset $tmp"
+    
+    [ -z "$enter_msg" ] && enter_msg="Overriding $var='$val'"
+    [ -z "$leave_msg" ] && leave_msg="Restoring $var='$tmp_val'"
+    
+    # Prepend any message to actions.
+    [ "$enter_msg" = '-' ] || enter_stmt="MO_echo \"$enter_msg\"; $enter_stmt"
+    [ "$leave_msg" = '-' ] || leave_stmt="MO_echo \"$leave_msg\"; $leave_stmt"
     
     # TODO Save some kind of entry such that the override chain of variables can be listed.
     
-    MO_extend "$enter_stmt" "$leave_stmt"
+    MO_extend_action "$enter_stmt" "$leave_stmt"
 }
