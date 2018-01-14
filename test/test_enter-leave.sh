@@ -3,59 +3,59 @@
 # SETUP AND MOCK #
 source ../M-O.sh
 if [ "$?" != 0 ]; then
-     >&2 echo "Error loading library"
-     exit 1
+	>&2 echo "Error loading library"
+	exit 1
 fi
 
 _MO_handle_action() {
-    local -r dir="$1"
-    local -r file="$2"
-    local -r event="$3"
-    
-    echo "$event $dir"
+	local -r dir="$1"
+	local -r file="$2"
+	local -r event="$3"
+	
+	echo "$event $dir"
 }
 
 # TEST FUNCTIONS #
 
 error() {
-    >&2 echo
-    >&2 echo "$@"
-    exit 1
+	>&2 echo
+	>&2 echo "$@"
+	exit 1
 }
 
 assert_dir() {
-    local dir="$1"
-    if [ "$MO_CUR_DIR" != "$dir" ]; then
-        error "Expected MO_CUR_DIR to be '$dir' but was '$MO_CUR_DIR'"
-    fi
+	local dir="$1"
+	if [ "$MO_CUR_DIR" != "$dir" ]; then
+		error "Expected MO_CUR_DIR to be '$dir' but was '$MO_CUR_DIR'"
+	fi
 }
 
 assert_out() {
-    local input
-    for line in "$@"; do
-        read input
-        if [ "$line" != "$input" ]; then
-            error "Expected line '$line' but was '$input'"
-        fi
-    done
-    read input
-    if [ -n "$input" ]; then
-        error "Extra input: '$input'"
-    fi
-    
-    >&2 echo '- OK!'
+	local input
+	for line in "$@"; do
+		read input
+		if [ "$line" != "$input" ]; then
+			error "Expected line '$line' but was '$input'"
+		fi
+	done
+	read input
+	if [ -n "$input" ]; then
+		error "Extra input: '$input'"
+	fi
+	
+	>&2 echo '- OK!'
 }
 
 test_update() {
-    local from="$1"
-    local to="$2"
-    
-    # Print to stderr to prevent it from going through pipe.
-    >&2 echo -n "Test: From '$from' to '$to' "
-    
-    local MO_CUR_DIR="$from"
-    _MO_update "$to"
-    assert_dir "${to%/}"
+	local from="$1"
+	local to="$2"
+	
+	# Print to stderr to prevent it from going through pipe.
+	>&2 echo -n "Test: From '$from' to '$to' "
+	
+	local MO_CUR_DIR="$from"
+	_MO_update "$to"
+assert_dir "${to%/}"
 }
 
 # TERMINOLOGY
