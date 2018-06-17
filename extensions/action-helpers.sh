@@ -7,7 +7,7 @@
 
 MO_suffix() {
 	local -r dir="${1:-"$dir"}"
-	command echo "_MO_$(command echo "$dir" | md5)"
+	builtin echo "_MO_$(builtin echo "$dir" | md5)"
 }
 
 # OVERRIDE AND RESTORE GOPATH #
@@ -96,9 +96,9 @@ _MO_set_nodejs_version() {
 	fi
 	
 	if [ "$current_version" = "$target_version" ]; then
-		MO_echo "Already using node.js version $target_version"
+		MO_echo "Already using node.js version '$target_version'"
 	else
-		MO_echo "Set node.js version $target_version"
+		MO_echo "Setting node.js version '$target_version'"
 		nvm use "$target_version" || MO_errcho "Could not set node.js version '$target_version'"
 	fi
 }
@@ -106,7 +106,7 @@ _MO_set_nodejs_version() {
 MO_nodejs_version() {
 	local -r node_version="$1"
 	
-	# TODO Loazy-load nvm if it wasn't loaded by .bash_profile (or similar), or ...
+	# TODO Optinally(?) loazy-load nvm if it wasn't loaded by .bash_profile (or similar).
 	
 	local -r current_version="$(nvm current)"
 	MO_override_var OLD_NODEJS_VERSION "$current_version"

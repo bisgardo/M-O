@@ -37,8 +37,8 @@ test_override_var() {
 	
 	if [ -n "$left_err" -o -n "$right_err" ]; then
 		errcho
-		[ -n "$left_err" ] && errcho $left_err
-		[ -n "$right_err" ] && errcho $right_err
+		[ -n "$left_err" ] && errcho "$left_err"
+		[ -n "$right_err" ] && errcho "$right_err"
 		return 1
 	fi
 	

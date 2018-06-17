@@ -26,9 +26,9 @@ export MO_LOG_LEVEL="${MO_LOG_LEVEL:-0}"
 ######################
 
 # TODO Try to write with printf such that echo can be aliased
-#      (cannot use `command echo` because that doesn't work with color codes in zsh).
+#      (cannot use `command echo` because that doesn't work with color codes in zsh). (<- but how about `builtin echo`?)
 
- # Print a M-O head as a prefix for a echoed message.
+ # Print a M-O head as a prefix for an echo message.
 _MO_echo_head() {
 	# Bold foreground and black background.
 	echo -ne "\033[1;40m"
@@ -43,7 +43,7 @@ _MO_echo_head() {
 	echo -en "\033[0m"
 }
 
-# Print an angry M-O head as a prefix for a errchoed message.
+# Print an angry M-O head as a prefix for a errcho message.
 _MO_echo_angry_head() {
 	# Bold foreground and black background.
 	echo -ne "\033[1;40m"
@@ -58,7 +58,7 @@ _MO_echo_angry_head() {
 	echo -en "\033[0m"
 }
 
-# Print a curious M-O head as a prefix for a errchoed message.
+# Print a curious M-O head as a prefix for a debucho message.
 _MO_echo_curious_head() {
 	# Bold foreground and black background.
 	echo -ne "\033[1;40m"
@@ -130,7 +130,7 @@ _MO_dirname() {
 	local -r dir="$1"
 	local -r result="$(dirname "$dir")"
 	if [ "$result" != '/' ]; then
-		command echo "$result"
+		builtin echo "$result"
 	fi
 }
 
@@ -193,7 +193,7 @@ _MO_handle_action() {
 	fi
 	
 	local -r func="on_$event"
-	local -r action="$(eval command echo "\$$func")" # Like "${!func}" but works in both bash and zsh.
+	local -r action="$(eval builtin echo "\$$func")" # Like "${!func}" but works in both bash and zsh.
 	
 	if [ -n "$action" ]; then
 		_MO_echo_action "$dir" "$event" "$action"
@@ -298,7 +298,7 @@ _MO_join_stmts() {
 		sep='; '
 	fi
 	
-	command echo "$left$sep$right"
+	builtin echo "$left$sep$right"
 }
 
 # TODO Add print capabilities to functions below.
@@ -358,7 +358,7 @@ MO_tmp_var_name() {
 	local -r var="$1"
 	local -r input="$2"
 	
-	command echo "${var}_MO_$(command echo "$input" | md5)"
+	builtin echo "${var}_MO_$(builtin echo "$input" | md5)"
 }
 
 # Arg 1: var (variable to override)
@@ -387,8 +387,8 @@ MO_override_var() {
 		return 1
 	fi
 	
-	local -r var_val="$(eval command echo "\$$var")" # Like "${!var}" but works in both bash and zsh.
-	local -r tmp_val="$(eval command echo "\$$tmp")" # Like "${!tmp}" but works in both bash and zsh.
+	local -r var_val="$(eval builtin echo "\$$var")" # Like "${!var}" but works in both bash and zsh.
+	local -r tmp_val="$(eval builtin echo "\$$tmp")" # Like "${!tmp}" but works in both bash and zsh.
 	
 	# TODO Only override if var_val is set.
 	local enter_stmt="$tmp='$var_val'; $var='$val'"
