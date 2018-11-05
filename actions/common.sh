@@ -2,6 +2,7 @@
 
 # TODO Add checks and error handling for verifying that actions are applicable.
 # TODO Optionally add indicator to PS1 that override is in effect (e.g. "[GOCODE=../..]").
+# TODO Split into separate files.
 
 # HELPERS FUNCTIONS #
 
