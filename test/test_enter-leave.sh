@@ -55,7 +55,7 @@ test_update() {
 	
 	local MO_CUR_DIR="$from"
 	_MO_update "$to"
-assert_dir "${to%/}"
+	assert_dir "${to%/}"
 }
 
 # TERMINOLOGY

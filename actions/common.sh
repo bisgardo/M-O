@@ -4,13 +4,6 @@
 # TODO Optionally add indicator to PS1 that override is in effect (e.g. "[GOCODE=../..]").
 # TODO Split into separate files.
 
-# HELPERS FUNCTIONS #
-
-MO_suffix() {
-	local -r dir="${1:-"$dir"}"
-	builtin echo "_MO_$(builtin echo "$dir" | md5)"
-}
-
 # OVERRIDE AND RESTORE GOPATH #
 
 MO_set_gopath() {
