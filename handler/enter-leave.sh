@@ -10,7 +10,7 @@ _MO_handle_event() {
 	eval ${MO_ACTION}
 
 	local -r func="on_$event"
-	local -r action="$(eval builtin echo "\$$func")" # Like "${!func}" but works in both bash and zsh.
+	local -r action="$(dereference "$func")"
 
 	if [ -n "$action" ]; then
 		_MO_echo_action "$dir" "$event" "$action"
@@ -136,8 +136,11 @@ MO_tmp_var_name() {
 # Arg 1: var (variable to override)
 # Arg 2: val (value that var is set to for the duration of the override)
 # Arg 3: enter_msg (message to output on enter)
-# TODO Should take tmp var disambiguator (e.g. suffix) to prevent a file-based and default action
-#      from overwriting each other's temp value when modifying the same var.
+# TODO Ensure that this works even when multiple actions (e.g. one defined in file and another being default)
+#      override the same var.
+#      - A temp var disambiguator would prevent them from overwriting each other's temp var (provided as local var).
+#      - deferred evaluation of the actual commands would make them evaluate the command relative to the correct environment
+#        (currently they both evaluate in the same environment but after the first is run the second one is in a new env).
 MO_override_var() {
 	local -r var="$1"
 	local -r val="$2"
@@ -161,7 +164,7 @@ MO_override_var() {
 
 	local enter_stmt="$var='$val'"
 	if is_set "$var"; then
-		local -r var_val="$(eval builtin echo "\$$var")" # Like "${!var}" but works in both bash and zsh.
+		local -r var_val="$(dereference "$var")"
 		enter_stmt="$tmp='$var_val'; $enter_stmt"
 	else
 		enter_stmt="unset $tmp; $enter_stmt"
@@ -170,12 +173,12 @@ MO_override_var() {
 
 	local leave_stmt
 	if is_set "$tmp"; then
-		local -r tmp_val="$(eval builtin echo "\$$tmp")" # Like "${!tmp}" but works in both bash and zsh.
+		local -r tmp_val="$(dereference "$tmp")"
 		leave_stmt="$var='$tmp_val'; unset $tmp"
-	[ -z "$leave_msg" ] && leave_msg="Restoring $var='$tmp_val'."
+		[ -z "$leave_msg" ] && leave_msg="Restoring $var='$tmp_val'."
 	else
 		leave_stmt="unset $var"
-	[ -z "$leave_msg" ] && leave_msg="Unsetting $var'."
+		[ -z "$leave_msg" ] && leave_msg="Unsetting $var'."
 	fi
 
 	# Prepend any message to actions.

@@ -13,7 +13,7 @@ He meticulously ensures that all directories on the way are properly
 in the directories of this path.
 
 While M-O will execute arbitrary shell code as actions,
-helper functions for the following use cases are available:
+helper functions for the following use cases are provided:
 
 * Overwrite environment variable (e.g. `PS1`, `PATH`, `GOPATH`, ...) on enter
   (and restore it on leave).
@@ -26,6 +26,9 @@ helper functions for the following use cases are available:
 
 M-O should be loaded and registered as part of your dotfiles setup.
 
+The project is heavily modularized to make it easy to swap out the different moving parts independently.
+Each isolated feature is enabled by sourcing a file.
+
 The project is written to work for both bash (3+) and zsh.
 The only difference in usage between the shells is which "register" file to source.
 
@@ -34,27 +37,45 @@ The only difference in usage between the shells is which "register" file to sour
 In `.bashrc` and/or `.bash_profile`:
 
     MO_PATH=/path/to/M-O
-    source "$MO_PATH/M-O.sh"
-    source "$MO_PATH/extensions/action-helpers.sh" # Optional; see below.
-    source "$MO_PATH/extensions/default-action.sh" # Optional; see below.
-    source "$MO_PATH/register.bash"
+	source "$MO_PATH/M-O.sh"                 # base module M-O
+    source "$MO_PATH/register.bash"          # register M-O in bash shell
+    
+	source "$MO_PATH/handler/enter-leave.sh" # use default event handler (optional; see below)
+	source "$MO_PATH/action/load-file.sh"    # enable loading actions from config file (optional; see below)
+	source "$MO_PATH/action/load-default.sh" # enable default actions (optional; see below)
+	source "$MO_PATH/action/common.sh"       # common actions (optional; see below)
 
 ### Zsh
 
-In e.g. `.zshrc`:
+Note that zsh support currently isn't properly tested.
 
-    MO_PATH=/path/to/M-O
-    source "$MO_PATH/M-O.sh"
-    source "$MO_PATH/extensions/action-helpers.sh" # Optional; see below.
-    source "$MO_PATH/extensions/default-action.sh" # Optional; see below.
-    source "$MO_PATH/register.zsh"
+In `.zshrc`: Same as for Bash above, except that `register.zsh"` should be used instead of `register.bash`.
+
+## Components
+
+* Base: The event emitter registered into the shell. Defined in `M-O.sh` and can be extended or replaced by setting `MO_PROMPT_COMMAND`.
+* Event handler: Defined in `handler/enter-leave.sh` and can be extended or replaced by setting `MO_HANDLER`.
+* Actions: Defined in `action/{common,load-default,load-file}.sh` and by the user.
+
+### Exposed API:
+
+* Base:
+  - Printing and utility functions: `MO_echo`, `MO_errcho`, `MO_debucho`.
+  - State variables: `dir` and `event` (containing current directory and `enter` or `leave`, respectively).
+* Event handler: `MO_override_var`, `MO_action_extend`, `MO_action_inject` for defining handler-independent actions.
+  [TODO Descibe.]
+* Actions: Nothing internally, but a common usage for actions is to set some state to configure external tools.
+
+The (currently only) event handler (`handler/enter-leave.sh`) implements the API by exposing the "return" variables
+`on_enter` and `on_leave` which the functions above manipulate.
+While manual actions can be implemented by doing the same, this is not a stable API and therefore not recommended.
 
 ## Entering and leaving
 
-A directory is "entered" when the working directory is changed
+A directory is "entered" when the working directory is changing
 from somewhere outside of its subtree to somewhere inside of it.
-The directory is "left" when the working directory is changed back
-to the outside of its subtree.
+The directory is "left" when the working directory is changing back
+to somewhere outside of its subtree.
 
 This means that when the current working directory changes,
 M-O will execute actions corresponding to the following events:
@@ -67,14 +88,12 @@ M-O will execute actions corresponding to the following events:
 
 ## Defining actions
 
-When a directory `dir` containing the file `dir/.MO` is entered or left,
-M-O will source this file and expose a number of dynamically scoped
-local variables to it.
-The two most important of these variables are `on_enter` and `on_leave`.
-The script may overwrite these variables in order to bind actions
-to the enter/leave events as described above.
-As such, these variables may be thought of as the script's return values
-and will be referred to as the "return variables".
+### File action (enabled by loading `action/load-file.sh`)
+
+When a directory `dir` containing the file `dir/.M-O` is entered or left,
+this file will be sourced and the actions defined within it be executed (as defined by the event handler).
+Note that while any arbitrary shell code can be run this way,
+only the functions exposed by the event handler (see above) should be used (unless the code is pure).
 
 The following other variables that M-O exposes to `.MO`
 provide context that help make the files more generic:
@@ -84,35 +103,18 @@ provide context that help make the files more generic:
 * `file`: The absolute path of the file.
 
 One should *not* count on these variables maintaining their values from the
-time the script is sourced until actions defined within it are executed.
-In other words, no exposed variables should not appear unexpanded in the
-return variables.
+time the file is sourced until actions defined within it are executed.
+In other words, if actions use these variables, they must be fully expanded.
 
-## Helpers
+### Default action
 
-The following helper functions simplify action definitions:
-
-* `MO_override_var <var> <val> <suffix>`:
-  Overwrite the environment variable `<var>` with value `<val>` on enter
-  The old value is kept in a temporary variable named `"$var$suffix"` which
-  M-O will restore when leaving the directory.
-  
-* `MO_extend <on_enter_prependee> <on_leave_appendee>`:
-  Augment the return variables by prepending `<on_enter_prependee>` to `on_enter`
-  and appending `<on_leave_appendee>` to `on_leave`.
-  As this function preserves previously registered return variables,
-  this is the recommended way of registering actions.
-* `MO_inject <on_enter_appendee> <on_leave_prependee>`:
-  Augment the return variables by appending `<on_enter_appendee>` to `on_enter`
-  and prepending `<on_leave_prependee>` to `on_leave`.
-  As with `MO_extend`, this function preserves previously registered return variables.
-  It is, however, expected to less commonly usable than `MO_extend`.
+TODO...
 
 ## Examples
 
 TODO...
 
-## Extensions
+## Common actions
 
 * `MO_python_env[_default]`: Activate/deactivate Python virtual environment...
 

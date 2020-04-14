@@ -209,3 +209,8 @@ join_stmts() {
 function is_set {
 	declare -p "$1" &>/dev/null
 }
+
+function dereference {
+	local -r var="$1"
+	eval builtin echo "\$$var" # Like "${!var}" but works in both bash and zsh.
+}
