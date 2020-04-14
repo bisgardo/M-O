@@ -18,11 +18,9 @@ MO_CUR_DIR="$MO_CUR_DIR"
 # Is not exported to ensure that subshells build their state from scratch.
 MO_PROMPT_COMMAND='_MO_update "$(pwd -P)"'
 
-# The command that's being evaluated when M-O enters or leaves a directory.
-# The exposed variables dir and event contain the current directory and 'enter'/'leave', respectively.
-# Extensions are intended to implement actions by setting this variable.
-# TODO Let state variables (dir/event) have names that are less likely to get overwritten by accident (i.e. prefixed with MO).
-MO_HANDLE_ACTION=''
+# Event handlers.
+MO_ENTER_HANDLER="$MO_ENTER_HANDLER"
+MO_LEAVE_HANDLER="$MO_LEAVE_HANDLER"
 
 # Log level: 1+: action info, 2+: event info.
 export MO_LOG_LEVEL="${MO_LOG_LEVEL:-0}"
@@ -160,9 +158,9 @@ _MO_is_ancestor() {
 	[ "$suffix" != "$descendant" ]
 }
 
-###########################################
-# UPDATE AND ACTION EVALUTATION FUNCTIONS #
-###########################################
+##########################################
+# UPDATE AND ACTION EVALUATION FUNCTIONS #
+##########################################
 
 # Arg 1: dir
 # Arg 2: event
@@ -171,7 +169,10 @@ _MO_handle_action() {
 	# API defines the following stable variables: dir and event.
 	local -r dir="$1"
 	local -r event="$2"
-	
+
+	# Implement enter/leave mechanism in "toplevel" event handler ("engine") - handles both config file and default.
+	# These have both action handlers on their own.
+	# Then this function can be overwritten to get alternative behavior.
 	eval ${MO_HANDLE_ACTION}
 }
 
@@ -179,7 +180,9 @@ _MO_handle_action() {
 _MO_enter() {
 	# TODO Only trim slash if necessary.
 	local -r dir="${1%/}"
-	_MO_handle_action "$dir" 'enter'
+	local -r event='enter'
+	eval ${MO_ENTER_HANDLER}
+	#_MO_handle_action "$dir" 'enter'
 	MO_CUR_DIR="$dir"
 }
 
@@ -187,7 +190,9 @@ _MO_enter() {
 _MO_leave() {
 	# TODO Only trim slash if necessary.
 	local -r dir="${1%/}"
-	_MO_handle_action "$dir" 'leave'
+	local -r event='leave'
+	eval ${MO_LEAVE_HANDLER}
+#	_MO_handle_action "$dir" 'leave'
 	MO_CUR_DIR="$(_MO_dirname "$dir")"
 }
 
@@ -232,4 +237,27 @@ _MO_update() {
 # Function to be invoked for each prompt.
 _MO_prompt_command() {
 	eval ${MO_PROMPT_COMMAND}
+}
+
+#####################
+# UTILITY FUNCTIONS #
+#####################
+
+# TODO Move these functions to separate utility project:
+
+join_stmts() {
+	local -r left="$1"
+	local -r right="$2"
+
+	local sep=''
+	if [ -n "$left" ] && [ -n "$right" ]; then
+		sep='; '
+	fi
+
+	builtin echo "$left$sep$right"
+}
+
+# From 'https://stackoverflow.com/a/13864829/883073'.
+function is_set {
+	declare -p "$1" &>/dev/null
 }

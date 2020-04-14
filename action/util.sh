@@ -1,19 +1,3 @@
-############################
-# ACTION UTILITY FUNCTIONS #
-############################
-
-_MO_join_stmts() {
-	local -r left="$1"
-	local -r right="$2"
-
-	local sep=''
-	if [ -n "$left" ] && [ -n "$right" ]; then
-		sep='; '
-	fi
-
-	builtin echo "$left$sep$right"
-}
-
 # TODO Add print capabilities to functions below.
 
 # Arg 1: enter_stmt ("enter" statement)
@@ -23,8 +7,8 @@ MO_extend_action() {
 	local -r enter_stmt="$1"
 	local -r leave_stmt="$2"
 
-	on_enter="$(_MO_join_stmts "$on_enter" "$enter_stmt")"
-	on_leave="$(_MO_join_stmts "$leave_stmt" "$on_leave")"
+	on_enter="$(join_stmts "$on_enter" "$enter_stmt")"
+	on_leave="$(join_stmts "$leave_stmt" "$on_leave")"
 }
 
 # Arg 1: enter_stmt ("enter" statement)
@@ -34,8 +18,8 @@ MO_inject_action() {
 	local -r enter_stmt="$1"
 	local -r leave_stmt="$2"
 
-	on_enter="$(_MO_join_stmts "$enter_stmt" "$on_enter")"
-	on_leave="$(_MO_join_stmts "$on_leave" "$leave_stmt")"
+	on_enter="$(join_stmts "$enter_stmt" "$on_enter")"
+	on_leave="$(join_stmts "$on_leave" "$leave_stmt")"
 }
 
 # Arg 1: enter_stmt ("enter" statement)
@@ -46,8 +30,8 @@ MO_prepend_action() {
 	local -r enter_stmt="$1"
 	local -r leave_stmt="$2"
 
-	on_enter="$(_MO_join_stmts "$enter_stmt" "$on_enter")"
-	on_leave="$(_MO_join_stmts "$leave_stmt" "$on_leave")"
+	on_enter="$(join_stmts "$enter_stmt" "$on_enter")"
+	on_leave="$(join_stmts "$leave_stmt" "$on_leave")"
 }
 
 # Arg 1: enter_stmt ("enter" statement)
@@ -58,8 +42,8 @@ MO_append_action() {
 	local -r enter_stmt="$1"
 	local -r leave_stmt="$2"
 
-	on_enter="$(_MO_join_stmts "$enter_stmt" "$on_enter")"
-	on_leave="$(_MO_join_stmts "$on_leave" "$leave_stmt")"
+	on_enter="$(join_stmts "$enter_stmt" "$on_enter")"
+	on_leave="$(join_stmts "$on_leave" "$leave_stmt")"
 }
 
 MO_tmp_var_name() {
@@ -71,6 +55,10 @@ MO_tmp_var_name() {
 
 # TODO Modularize such that the implementation of this can be swapped out with one that uses array (as stack of values).
 
+# Register actions to set and restore a given variable on enter and leave, respectively.
+# Note that the concrete values assigned to on_enter and on_leave depend on the current environment:
+# In particular, when entering, the value computed for on_leave is not the same as when actually leaving.
+# This means that the action cannot just be stored somewhere for later execution.
 # Arg 1: var (variable to override)
 # Arg 2: val (value that var is set to for the duration of the override)
 # Arg 3: enter_msg (message to output on enter)
@@ -121,15 +109,4 @@ MO_override_var() {
 	# TODO Save some kind of entry such that the override chain of variables can be listed.
 
 	MO_extend_action "$enter_stmt" "$leave_stmt"
-}
-
-# TODO Move to utility project:
-
-# From 'https://stackoverflow.com/a/13864829/883073'.
-function is_set {
-	declare -p "$1" &>/dev/null
-}
-function is_unset {
-	local -r var="$1"
-	[ -z ${var+x} ]
 }
