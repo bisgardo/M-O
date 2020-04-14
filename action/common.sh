@@ -1,7 +1,12 @@
 # Extensions for simplifying creation of M-O actions.
+# Dependencies:
+# - Base printing functions: MO_echo, MO_errcho, MO_debucho (implemented in './M-O.sh').
+# - Action definition functions: MO_override_var, MO_action_extend, MO_action_inject
+#   (implemented by the event handler engine - currently only the enter/leave implementation
+#   defined in 'handler/enter-leave.sh' exists).
 
 # TODO Add checks and error handling for verifying that actions are applicable.
-# TODO Optionally add indicator to PS1 that override is in effect (e.g. "[GOCODE=../..]").
+# TODO Optionally add indicator to PS1 that override is in effect (e.g. "[GOPATH=../..]").
 # TODO Split into separate files.
 
 # OVERRIDE AND RESTORE GOPATH #
@@ -75,7 +80,7 @@ MO_python_virtualenv() {
 	
 	local -r enter_stmt="_MO_enter_python_virtualenv '$env_path' '$env_args'"
 	local -r leave_stmt="_MO_leave_python_virtualenv '$env_path'"
-	MO_extend_action "$enter_stmt" "$leave_stmt"
+	MO_action_extend "$enter_stmt" "$leave_stmt"
 }
 
 # SET NODE.JS VERSION #
@@ -107,5 +112,5 @@ MO_nodejs_version() {
 	
 	local enter_stmt="_MO_set_nodejs_version '$current_version' '$node_version'"
 	local leave_stmt="_MO_set_nodejs_version '$current_version' '$OLD_NODEJS_VERSION'"
-	MO_extend_action "$enter_stmt" "$leave_stmt"
+	MO_action_extend "$enter_stmt" "$leave_stmt"
 }

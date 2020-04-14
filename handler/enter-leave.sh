@@ -1,9 +1,83 @@
+# The command that's being evaluated when M-O enters or leaves a directory.
+# The exposed variables 'dir' and 'event' contain the current directory and 'enter'/'leave', respectively.
+# Actions are intended to register themselves by extending this variable.
+MO_ACTION=''
+
+_MO_handle_event() {
+	local on_enter=''
+	local on_leave=''
+
+	eval ${MO_ACTION}
+
+	local -r func="on_$event"
+	local -r action="$(eval builtin echo "\$$func")" # Like "${!func}" but works in both bash and zsh.
+
+	if [ -n "$action" ]; then
+		_MO_echo_action "$dir" "$event" "$action"
+		_MO_eval_action ${action} # No quoting.
+	elif [ "$MO_LOG_LEVEL" -ge 2 ]; then
+		MO_echo "($event $dir)"
+	fi
+}
+
+MO_ENTER_HANDLER="_MO_handle_event;$MO_ENTER_HANDLER"
+MO_LEAVE_HANDLER="_MO_handle_event;$MO_LEAVE_HANDLER"
+
+####################
+# HELPER FUNCTIONS #
+####################
+
+_MO_eval_action() {
+	if [ -z "$MO_DEBUG" ]; then
+		eval $@ || MO_errcho "Failed evaluating command: $@"
+	else
+		MO_debucho "Evaluate command: $@"
+	fi
+}
+
+# Arg 1: ancestor
+# Arg 2: descendant
+_MO_is_ancestor() {
+	local -r ancestor="${1%/}/"
+	local -r descendant="${2%/}/"
+
+	# $descendant with the (literal) prefix $ancestor removed.
+	local suffix="${descendant#"$ancestor"}"
+
+	# If $ancestor is a (non-empty) prefix, then
+	# $suffix will be different from $descendant.
+	[ "$suffix" != "$descendant" ]
+}
+
+# Arg 1: dir
+# Arg 2: event
+# Arg 3: action
+# Print a M-O message for an action to be executed.
+_MO_echo_action() {
+	local -r dir="$1"
+	local -r event="$2"
+	local -r action="$3"
+
+	if [ ! -d "$dir" ]; then
+		MO_errcho "$event event in non-existent dir '$dir'"
+		return 1
+	fi
+	if [ "$MO_LOG_LEVEL" -ge 1 ]; then
+		MO_echo "Executing action: $action"
+    fi
+}
+
+
+###############################
+# ACTION DEFINITION FUNCTIONS #
+###############################
+
 # TODO Add print capabilities to functions below.
 
 # Arg 1: enter_stmt ("enter" statement)
 # Arg 2: leave_stmt ("leave" statement)
 # Extend the return variables by appending enter_stmt to on_enter and prepending leave_stmt to on_leave.
-MO_extend_action() {
+MO_action_extend() {
 	local -r enter_stmt="$1"
 	local -r leave_stmt="$2"
 
@@ -14,7 +88,7 @@ MO_extend_action() {
 # Arg 1: enter_stmt ("enter" statement)
 # Arg 2: leave_stmt ("leave" statement)
 # Inject the return variables by prepending enter_stmt to on_enter and appending leave_stmt to on_leave.
-MO_inject_action() {
+MO_action_inject() {
 	local -r enter_stmt="$1"
 	local -r leave_stmt="$2"
 
@@ -46,14 +120,14 @@ MO_append_action() {
 	on_leave="$(join_stmts "$on_leave" "$leave_stmt")"
 }
 
+# TODO Modularize such that the implementation of this can be swapped out with one that uses array (as stack of values).
+
 MO_tmp_var_name() {
 	local -r var="$1"
 	local -r dir="$2"
 
 	builtin echo "${var}_MO_${#dir}"
 }
-
-# TODO Modularize such that the implementation of this can be swapped out with one that uses array (as stack of values).
 
 # Register actions to set and restore a given variable on enter and leave, respectively.
 # Note that the concrete values assigned to on_enter and on_leave depend on the current environment:
@@ -62,6 +136,8 @@ MO_tmp_var_name() {
 # Arg 1: var (variable to override)
 # Arg 2: val (value that var is set to for the duration of the override)
 # Arg 3: enter_msg (message to output on enter)
+# TODO Should take tmp var disambiguator (e.g. suffix) to prevent a file-based and default action
+#      from overwriting each other's temp value when modifying the same var.
 MO_override_var() {
 	local -r var="$1"
 	local -r val="$2"
@@ -108,5 +184,7 @@ MO_override_var() {
 
 	# TODO Save some kind of entry such that the override chain of variables can be listed.
 
-	MO_extend_action "$enter_stmt" "$leave_stmt"
+	MO_action_extend "$enter_stmt" "$leave_stmt"
 }
+
+# TODO Add function 'MO_unset_var'.

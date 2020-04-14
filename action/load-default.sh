@@ -3,7 +3,7 @@
 # Is not exported to ensure that subshells build their state from scratch.
 MO_DEFAULT_ACTION="$MO_DEFAULT_ACTION"
 
-_MO_handle_default_action() {
+_MO_action_load_default() {
 	if [ -n "$MO_DEFAULT_ACTION" ]; then
 		if [ "$MO_LOG_LEVEL" -ge 1 ]; then
 			MO_echo "(evaluating default action on dir $dir): $MO_DEFAULT_ACTION"
@@ -12,4 +12,4 @@ _MO_handle_default_action() {
 	fi
 }
 
-MO_ACTION="_MO_handle_default_action;$MO_ACTION"
+MO_ACTION="_MO_action_load_default;$MO_ACTION"
