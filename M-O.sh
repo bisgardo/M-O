@@ -45,7 +45,7 @@ _MO_update() {
 	local -r target_dir="${1%/}"
 	# TODO Verify that this makes sense/makes a difference.
 	local -r x=$?
-
+	
 	# Common case.
 	if [ "$MO_CUR_DIR" = "$target_dir" ]; then
 		if [ "$MO_LOG_LEVEL" -ge 1 ]; then
@@ -53,16 +53,16 @@ _MO_update() {
 		fi
 		return $x
 	fi
-
+	
 	# Traverse from $old_dir up the tree ("leaving" directories on the way)
 	# until $MO_CUR_DIR is an ancestor (i.e. prefix) of $target_dir.
 	until _MO_is_ancestor "$MO_CUR_DIR" "$target_dir"; do
 		_MO_leave "$MO_CUR_DIR"
 	done
-
+	
 	# Relative path from $MO_CUR_DIR to $target_dir.
 	local -r relative_path="${target_dir#"$MO_CUR_DIR"}"
-
+	
 	if [ -n "$relative_path" ]; then
 		local dir
 		while read -d'/' dir; do
@@ -70,7 +70,7 @@ _MO_update() {
 		done <<< "${relative_path#/}"
 		_MO_enter "$MO_CUR_DIR/$dir"
 	fi
-
+	
 	return $?
 }
 
@@ -103,7 +103,7 @@ _MO_leave() {
 _MO_echo_head() {
 	# Bold foreground and black background.
 	echo -ne "\033[1;40m"
-
+	
 	# "[": Bold white foreground on black background.
 	echo -ne "\033[97m["
 	# "--": Bold yellow foreground on black background.
@@ -118,7 +118,7 @@ _MO_echo_head() {
 _MO_echo_angry_head() {
 	# Bold foreground and black background.
 	echo -ne "\033[1;40m"
-
+	
 	# "[": Bold white foreground on black background.
 	echo -ne "\033[97m["
 	# "><": Bold red foreground on black background.
@@ -133,7 +133,7 @@ _MO_echo_angry_head() {
 _MO_echo_curious_head() {
 	# Bold foreground and black background.
 	echo -ne "\033[1;40m"
-
+	
 	# "[": Bold white foreground on black background.
 	echo -ne "\033[97m["
 	# "==": Bold red foreground on black background.
@@ -196,7 +196,7 @@ _MO_dirname() {
 join_stmts() {
 	local -r left="$1"
 	local -r right="$2"
-
+	
 	local sep=''
 	if [ -n "$left" ] && [ -n "$right" ]; then
 		sep='; '

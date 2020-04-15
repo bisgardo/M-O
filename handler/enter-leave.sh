@@ -6,12 +6,12 @@ MO_ACTION=''
 _MO_handle_event() {
 	local on_enter=''
 	local on_leave=''
-
+	
 	eval ${MO_ACTION}
-
+	
 	local -r func="on_$event"
 	local -r action="$(dereference "$func")"
-
+	
 	if [ -n "$action" ]; then
 		_MO_echo_action "$dir" "$event" "$action"
 		_MO_eval_action ${action} # No quoting.
@@ -40,10 +40,10 @@ _MO_eval_action() {
 _MO_is_ancestor() {
 	local -r ancestor="${1%/}/"
 	local -r descendant="${2%/}/"
-
+	
 	# $descendant with the (literal) prefix $ancestor removed.
 	local suffix="${descendant#"$ancestor"}"
-
+	
 	# If $ancestor is a (non-empty) prefix, then
 	# $suffix will be different from $descendant.
 	[ "$suffix" != "$descendant" ]
@@ -57,7 +57,7 @@ _MO_echo_action() {
 	local -r dir="$1"
 	local -r event="$2"
 	local -r action="$3"
-
+	
 	if [ ! -d "$dir" ]; then
 		MO_errcho "$event event in non-existent dir '$dir'"
 		return 1
@@ -66,7 +66,6 @@ _MO_echo_action() {
 		MO_echo "Executing action: $action"
     fi
 }
-
 
 ###############################
 # ACTION DEFINITION FUNCTIONS #
@@ -80,7 +79,7 @@ _MO_echo_action() {
 MO_action_extend() {
 	local -r enter_stmt="$1"
 	local -r leave_stmt="$2"
-
+	
 	on_enter="$(join_stmts "$on_enter" "$enter_stmt")"
 	on_leave="$(join_stmts "$leave_stmt" "$on_leave")"
 }
@@ -91,7 +90,7 @@ MO_action_extend() {
 MO_action_inject() {
 	local -r enter_stmt="$1"
 	local -r leave_stmt="$2"
-
+	
 	on_enter="$(join_stmts "$enter_stmt" "$on_enter")"
 	on_leave="$(join_stmts "$on_leave" "$leave_stmt")"
 }
@@ -103,7 +102,7 @@ MO_action_inject() {
 MO_prepend_action() {
 	local -r enter_stmt="$1"
 	local -r leave_stmt="$2"
-
+	
 	on_enter="$(join_stmts "$enter_stmt" "$on_enter")"
 	on_leave="$(join_stmts "$leave_stmt" "$on_leave")"
 }
@@ -115,7 +114,7 @@ MO_prepend_action() {
 MO_append_action() {
 	local -r enter_stmt="$1"
 	local -r leave_stmt="$2"
-
+	
 	on_enter="$(join_stmts "$enter_stmt" "$on_enter")"
 	on_leave="$(join_stmts "$on_leave" "$leave_stmt")"
 }
@@ -125,7 +124,7 @@ MO_append_action() {
 MO_tmp_var_name() {
 	local -r var="$1"
 	local -r dir="$2"
-
+	
 	builtin echo "${var}_MO_${#dir}"
 }
 
@@ -144,12 +143,12 @@ MO_tmp_var_name() {
 MO_override_var() {
 	local -r var="$1"
 	local -r val="$2"
-
+	
 	local enter_msg="$3"
 	local leave_msg="$4"
-
+	
 	local tmp="$(MO_tmp_var_name "$var" "$dir")"
-
+	
 	# Since all local variables are lower case by convention, requiring that
 	# overridden variable isn't purely lower case ensures that such
 	# collisions cannot happen.
@@ -161,7 +160,7 @@ MO_override_var() {
 		MO_errcho "Cannot back up '$var' in purely lower case variable '$tmp'"
 		return 1
 	fi
-
+	
 	local enter_stmt="$var='$val'"
 	if is_set "$var"; then
 		local -r var_val="$(dereference "$var")"
@@ -170,7 +169,7 @@ MO_override_var() {
 		enter_stmt="unset $tmp; $enter_stmt"
 	fi
 	[ -z "$enter_msg" ] && enter_msg="Overriding $var='$val'."
-
+	
 	local leave_stmt
 	if is_set "$tmp"; then
 		local -r tmp_val="$(dereference "$tmp")"
@@ -180,13 +179,13 @@ MO_override_var() {
 		leave_stmt="unset $var"
 		[ -z "$leave_msg" ] && leave_msg="Unsetting $var'."
 	fi
-
+	
 	# Prepend any message to actions.
 	[ "$enter_msg" = '-' ] || enter_stmt="MO_echo \"$enter_msg\"; $enter_stmt"
 	[ "$leave_msg" = '-' ] || leave_stmt="MO_echo \"$leave_msg\"; $leave_stmt"
-
+	
 	# TODO Save some kind of entry such that the override chain of variables can be listed.
-
+	
 	MO_action_extend "$enter_stmt" "$leave_stmt"
 }
 
