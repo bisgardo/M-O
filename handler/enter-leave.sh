@@ -10,6 +10,7 @@ _MO_handle_event() {
 	local on_enter=''
 	local on_leave=''
 	
+	local tmp_count=0
 	eval ${MO_ACTION}
 	
 	local -r func="on_$event"
@@ -113,8 +114,9 @@ MO_append_action() {
 MO_tmp_var_name() {
 	local -r var="$1"
 	local -r dir="$2"
+	local -r suffix="$3"
 	
-	builtin echo "${var}_MO_${#dir}"
+	builtin echo "${var}_MO_${#dir}${suffix}"
 }
 
 # Register actions to set and restore a given variable on enter and leave, respectively.
@@ -123,17 +125,12 @@ MO_tmp_var_name() {
 # This means that the action cannot just be stored somewhere for later execution.
 # Arg 1: var (variable to override)
 # Arg 2: val (value that var is set to for the duration of the override)
-# Arg 3: enter_msg (message to output on enter)
-# TODO Ensure that this works even when multiple actions (e.g. one defined in file and another being default)
-#      override the same var.
-#      - A temp var disambiguator would prevent them from overwriting each other's temp var (provided as local var).
-#      - deferred evaluation of the actual commands would make them evaluate the command relative to the correct environment
-#        (currently they both evaluate in the same environment but after the first is run the second one is in a new env).
 MO_override_var() {
 	local -r var="$1"
 	local -r val="$2"
 	
-	local tmp="$(MO_tmp_var_name "$var" "$dir")"
+	local tmp="$(MO_tmp_var_name "$var" "$dir" "_$tmp_count")"
+	((tmp_count++))
 	
 #	# Since all local variables are lower case by convention, requiring that
 #	# overridden variable isn't purely lower case ensures that such
