@@ -185,6 +185,20 @@ _MO_dirname() {
 	fi
 }
 
+# Arg 1: ancestor
+# Arg 2: descendant
+_MO_is_ancestor() {
+	local -r ancestor="${1%/}/"
+	local -r descendant="${2%/}/"
+	
+	# $descendant with the (literal) prefix $ancestor removed.
+	local suffix="${descendant#"$ancestor"}"
+	
+	# If $ancestor is a (non-empty) prefix, then
+	# $suffix will be different from $descendant.
+	[ "$suffix" != "$descendant" ]
+}
+
 #####################
 # UTILITY FUNCTIONS #
 #####################

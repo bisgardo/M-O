@@ -1,3 +1,6 @@
+# Event handler for "enter" and "leave" events emitted from M-O.sh.
+# Depends on M-O.sh (for utility functions is_set and join_stmts).
+
 # The command that's being evaluated when M-O enters or leaves a directory.
 # The exposed variables 'dir' and 'event' contain the current directory and 'enter'/'leave', respectively.
 # Actions are intended to register themselves by extending this variable.
@@ -33,20 +36,6 @@ _MO_eval_action() {
 	else
 		MO_debucho "Evaluate command: $@"
 	fi
-}
-
-# Arg 1: ancestor
-# Arg 2: descendant
-_MO_is_ancestor() {
-	local -r ancestor="${1%/}/"
-	local -r descendant="${2%/}/"
-	
-	# $descendant with the (literal) prefix $ancestor removed.
-	local suffix="${descendant#"$ancestor"}"
-	
-	# If $ancestor is a (non-empty) prefix, then
-	# $suffix will be different from $descendant.
-	[ "$suffix" != "$descendant" ]
 }
 
 # Arg 1: dir
@@ -161,14 +150,15 @@ MO_override_var() {
 		return 1
 	fi
 	
-	local enter_stmt="$var='$val'"
+	local enter_stmt
 	if is_set "$var"; then
 		local -r var_val="$(dereference "$var")"
-		enter_stmt="$tmp='$var_val'; $enter_stmt"
+		enter_stmt="$tmp='$var_val'; $var='$val'"
+		[ -z "$enter_msg" ] && enter_msg="Overriding $var='$val'."
 	else
-		enter_stmt="unset $tmp; $enter_stmt"
+		enter_stmt="unset $tmp; export $var='$val'"
+		[ -z "$enter_msg" ] && enter_msg="Setting $var='$val'."
 	fi
-	[ -z "$enter_msg" ] && enter_msg="Overriding $var='$val'."
 	
 	local leave_stmt
 	if is_set "$tmp"; then

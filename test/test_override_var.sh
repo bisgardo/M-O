@@ -1,7 +1,8 @@
-#!/usr/bin/env bash
+# File containing the tested function.
+source ../handler/enter-leave.sh
 
-# SETUP AND MOCK #
-source ../actions/util.sh
+# For utility functions only.
+source ../M-O.sh
 
 if [ "$?" != 0 ]; then
 	>&2 echo "Error loading library"
@@ -44,14 +45,14 @@ test_override_var() {
 		return 1
 	fi
 	
-	errcho '- OK!'
+	errcho ' - OK!'
 }
 
 # TESTS: Set VAR to value "new" #
 
 (
 	# On enter: No existing value to store in temp var.
-	expected_on_enter="unset TMP; VAR='new'"
+	expected_on_enter="unset TMP; export VAR='new'"
 	# On leave: No old value in temp var to restore from.
 	expected_on_leave="unset VAR"
 	test_override_var 'neither VAR nor TMP set' VAR new "$expected_on_enter" "$expected_on_leave"
@@ -69,7 +70,7 @@ test_override_var() {
 (
 	TMP=older
 	# On enter: No existing value to store in temp var.
-	expected_on_enter="unset TMP; VAR='new'" # TODO Back up TMP.
+	expected_on_enter="unset TMP; export VAR='new'" # TODO Back up TMP.
 	# On leave: Restore value from temp var.
 	expected_on_leave="VAR='older'; unset TMP"
 	test_override_var 'TMP set' VAR new "$expected_on_enter" "$expected_on_leave"

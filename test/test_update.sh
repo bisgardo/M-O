@@ -1,19 +1,13 @@
-#!/usr/bin/env bash
-
 # SETUP AND MOCK #
 source ../M-O.sh
+
 if [ "$?" != 0 ]; then
 	>&2 echo "Error loading library"
 	exit 1
 fi
 
-_MO_handle_action() {
-	local -r dir="$1"
-	local -r file="$2"
-	local -r event="$3"
-	
-	echo "$event $dir"
-}
+MO_ENTER_HANDLER='echo enter $dir'
+MO_LEAVE_HANDLER='echo leave $dir'
 
 # TEST FUNCTIONS #
 
@@ -112,8 +106,3 @@ test_update '/x/y' '/a/b/' | assert_out 'leave /x/y' 'leave /x' 'enter /a' 'ente
 # From level 2 to 2 (via 1).
 test_update '/x/y' '/x/b'  | assert_out 'leave /x/y' 'enter /x/b'
 test_update '/x/y' '/x/b/' | assert_out 'leave /x/y' 'enter /x/b'
-
-# TODO Test action logic [4]
-# * File with no actions [1]
-# * File with only onEnter or onLeave [2]
-# * File with both actions [1]
