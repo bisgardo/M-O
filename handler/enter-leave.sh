@@ -138,45 +138,67 @@ MO_override_var() {
 	
 	local tmp="$(MO_tmp_var_name "$var" "$dir")"
 	
-	# Since all local variables are lower case by convention, requiring that
-	# overridden variable isn't purely lower case ensures that such
-	# collisions cannot happen.
-	if [ "$(echo "$var" | tr '[:upper:]' '[:lower:]')" = "$var" ]; then
-		MO_errcho "Cannot override purely lower case variable '$var'"
-		return 1
-	fi
-	if [ "$(echo "$tmp" | tr '[:upper:]' '[:lower:]')" = "$tmp" ]; then
-		MO_errcho "Cannot back up '$var' in purely lower case variable '$tmp'"
-		return 1
-	fi
+#	# Since all local variables are lower case by convention, requiring that
+#	# overridden variable isn't purely lower case ensures that such
+#	# collisions cannot happen.
+#	if [ "$(echo "$var" | tr '[:upper:]' '[:lower:]')" = "$var" ]; then
+#		MO_errcho "Cannot override purely lower case variable '$var'"
+#		return 1
+#	fi
+#	if [ "$(echo "$tmp" | tr '[:upper:]' '[:lower:]')" = "$tmp" ]; then
+#		MO_errcho "Cannot back up '$var' in purely lower case variable '$tmp'"
+#		return 1
+#	fi
 	
-	local enter_stmt
+	MO_action_extend "_MO_set_var '$var' '$val' '$tmp' '$enter_msg'" "_MO_unset_var '$var' '$val' '$tmp' '$leave_msg'"
+}
+
+_MO_set_var() {
+	local -r var="$1"
+	local -r val="$2"
+	local -r tmp="$3"
+	local -r msg="$4"
+	
 	if is_set "$var"; then
 		local -r var_val="$(dereference "$var")"
-		enter_stmt="$tmp='$var_val'; $var='$val'"
-		[ -z "$enter_msg" ] && enter_msg="Overriding $var='$val'."
+		if [ -z "$msg" ]; then
+			MO_echo "Overriding $var='$val'".
+		elif [ "$msg" != '-' ]; then
+			MO_echo "$msg"
+		fi
+		eval "$tmp='$var_val'; $var='$val'"
 	else
-		enter_stmt="unset $tmp; export $var='$val'"
-		[ -z "$enter_msg" ] && enter_msg="Setting $var='$val'."
+		if [ -z "$msg" ]; then
+			MO_echo "Setting $var='$val'".
+		elif [ "$msg" != '-' ]; then
+			MO_echo "$msg"
+		fi
+		eval "unset $tmp; export $var='$val'"
 	fi
+}
+
+_MO_unset_var() {
+	local -r var="$1"
+	local -r val="$2"
+	local -r tmp="$3"
+	local -r msg="$4"
 	
-	local leave_stmt
 	if is_set "$tmp"; then
 		local -r tmp_val="$(dereference "$tmp")"
-		leave_stmt="$var='$tmp_val'; unset $tmp"
-		[ -z "$leave_msg" ] && leave_msg="Restoring $var='$tmp_val'."
+		if [ -z "$msg" ]; then
+			MO_echo "Restoring $var='$tmp_val'."
+		elif [ "$msg" != '-' ]; then
+			MO_echo "$msg"
+		fi
+		eval "$var='$tmp_val'; unset $tmp"
 	else
-		leave_stmt="unset $var"
-		[ -z "$leave_msg" ] && leave_msg="Unsetting $var'."
+		if [ -z "$msg" ]; then
+			MO_echo "Unsetting $var."
+		elif [ "$msg" != '-' ]; then
+			MO_echo "$msg"
+		fi
+		eval "unset $var"
 	fi
-	
-	# Prepend any message to actions.
-	[ "$enter_msg" = '-' ] || enter_stmt="MO_echo \"$enter_msg\"; $enter_stmt"
-	[ "$leave_msg" = '-' ] || leave_stmt="MO_echo \"$leave_msg\"; $leave_stmt"
-	
-	# TODO Save some kind of entry such that the override chain of variables can be listed.
-	
-	MO_action_extend "$enter_stmt" "$leave_stmt"
 }
 
 # TODO Add function 'MO_unset_var'.
