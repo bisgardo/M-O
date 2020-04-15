@@ -15,12 +15,14 @@ in the directories of this path.
 While M-O will execute arbitrary shell code as actions,
 helper functions for the following use cases are provided:
 
-* Overwrite environment variable (e.g. `PS1`, `PATH`, `GOPATH`, ...) on enter
+* Overwrite environment variable (e.g. `PS1`, `PATH`, `GOPATH`, `LD_LIBRARY_PATH`, ...) on enter
   (and restore it on leave).
 
 * Activate Python virtual environment on enter (and deactivate it on delete).
 
 * Set Node.js version using `nvm` (and restore it on leave).
+
+* Other similar tool configurations will be added.
 
 ## Install
 
@@ -36,10 +38,10 @@ The only difference in usage between the shells is which "register" file to sour
 
 In `.bashrc` and/or `.bash_profile`:
 
-    MO_PATH=/path/to/M-O
+	MO_PATH=/path/to/M-O
 	source "$MO_PATH/M-O.sh"                 # base module M-O
-    source "$MO_PATH/register.bash"          # register M-O in bash shell
-    
+	source "$MO_PATH/register.bash"          # register M-O in bash shell
+	
 	source "$MO_PATH/handler/enter-leave.sh" # use default event handler (optional; see below)
 	source "$MO_PATH/action/load-file.sh"    # enable loading actions from config file (optional; see below)
 	source "$MO_PATH/action/load-default.sh" # enable default actions (optional; see below)
@@ -49,21 +51,24 @@ In `.bashrc` and/or `.bash_profile`:
 
 Note that zsh support currently isn't properly tested.
 
-In `.zshrc`: Same as for Bash above, except that `register.zsh"` should be used instead of `register.bash`.
+In `.zshrc`: Same as for Bash above with `register.bash` replaced by `register.zsh`.
 
 ## Components
 
 * Base: The event emitter registered into the shell. Defined in `M-O.sh` and can be extended or replaced by setting `MO_PROMPT_COMMAND`.
-* Event handler: Defined in `handler/enter-leave.sh` and can be extended or replaced by setting `MO_HANDLER`.
+* Event handler: Defined in `handler/enter-leave.sh` and can be extended or replaced by setting `MO_ENTER_HANDLER` and `MO_LEAVE_HANDLER`.
 * Actions: Defined in `action/{common,load-default,load-file}.sh` and by the user.
 
-### Exposed API:
+Note that M-O can configure itself to work differently within a subtree by managing these (and other) internal environment variables.
+
+### Exposed API
+
+[TODO Document functions]
 
 * Base:
   - Printing and utility functions: `MO_echo`, `MO_errcho`, `MO_debucho`.
   - State variables: `dir` and `event` (containing current directory and `enter` or `leave`, respectively).
 * Event handler: `MO_override_var`, `MO_action_extend`, `MO_action_inject` for defining handler-independent actions.
-  [TODO Descibe.]
 * Actions: Nothing internally, but a common usage for actions is to set some state to configure external tools.
 
 The (currently only) event handler (`handler/enter-leave.sh`) implements the API by exposing the "return" variables
@@ -108,11 +113,11 @@ In other words, if actions use these variables, they must be fully expanded.
 
 ### Default action
 
-TODO...
+[TODO...]
 
 ## Examples
 
-TODO...
+[TODO...]
 
 ## Common actions
 
