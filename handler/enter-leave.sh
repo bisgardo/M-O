@@ -10,6 +10,7 @@ _MO_handle_event() {
 	local on_enter=''
 	local on_leave=''
 	
+	local tmp_count=0
 	eval ${MO_ACTION}
 	
 	local -r func="on_$event"
@@ -113,8 +114,9 @@ MO_append_action() {
 MO_tmp_var_name() {
 	local -r var="$1"
 	local -r dir="$2"
+	local -r suffix="$3"
 	
-	builtin echo "${var}_MO_${#dir}"
+	builtin echo "${var}_MO_${#dir}${suffix}"
 }
 
 # Register actions to set and restore a given variable on enter and leave, respectively.
@@ -123,60 +125,64 @@ MO_tmp_var_name() {
 # This means that the action cannot just be stored somewhere for later execution.
 # Arg 1: var (variable to override)
 # Arg 2: val (value that var is set to for the duration of the override)
-# Arg 3: enter_msg (message to output on enter)
-# TODO Ensure that this works even when multiple actions (e.g. one defined in file and another being default)
-#      override the same var.
-#      - A temp var disambiguator would prevent them from overwriting each other's temp var (provided as local var).
-#      - deferred evaluation of the actual commands would make them evaluate the command relative to the correct environment
-#        (currently they both evaluate in the same environment but after the first is run the second one is in a new env).
 MO_override_var() {
 	local -r var="$1"
 	local -r val="$2"
 	
-	local enter_msg="$3"
-	local leave_msg="$4"
+	local tmp="$(MO_tmp_var_name "$var" "$dir" "_$tmp_count")"
+	((tmp_count++))
 	
-	local tmp="$(MO_tmp_var_name "$var" "$dir")"
+#	# Since all local variables are lower case by convention, requiring that
+#	# overridden variable isn't purely lower case ensures that such
+#	# collisions cannot happen.
+#	if [ "$(echo "$var" | tr '[:upper:]' '[:lower:]')" = "$var" ]; then
+#		MO_errcho "Cannot override purely lower case variable '$var'"
+#		return 1
+#	fi
+#	if [ "$(echo "$tmp" | tr '[:upper:]' '[:lower:]')" = "$tmp" ]; then
+#		MO_errcho "Cannot back up '$var' in purely lower case variable '$tmp'"
+#		return 1
+#	fi
 	
-	# Since all local variables are lower case by convention, requiring that
-	# overridden variable isn't purely lower case ensures that such
-	# collisions cannot happen.
-	if [ "$(echo "$var" | tr '[:upper:]' '[:lower:]')" = "$var" ]; then
-		MO_errcho "Cannot override purely lower case variable '$var'"
-		return 1
-	fi
-	if [ "$(echo "$tmp" | tr '[:upper:]' '[:lower:]')" = "$tmp" ]; then
-		MO_errcho "Cannot back up '$var' in purely lower case variable '$tmp'"
-		return 1
-	fi
+	MO_action_extend "_MO_set_var '$var' '$val' '$tmp'" "_MO_unset_var '$var' '$val' '$tmp'" 
+}
+
+_MO_set_var() {
+	local -r var="$1"
+	local -r val="$2"
+	local -r tmp="$3"
 	
-	local enter_stmt
 	if is_set "$var"; then
 		local -r var_val="$(dereference "$var")"
-		enter_stmt="$tmp='$var_val'; $var='$val'"
-		[ -z "$enter_msg" ] && enter_msg="Overriding $var='$val'."
+		if [ "$MO_LOG_LEVEL" -ge 0 ]; then
+			MO_echo "Overriding $var='$val'".
+		fi
+		eval "$tmp='$var_val'; $var='$val'"
 	else
-		enter_stmt="unset $tmp; export $var='$val'"
-		[ -z "$enter_msg" ] && enter_msg="Setting $var='$val'."
+		if [ "$MO_LOG_LEVEL" -ge 0 ]; then
+			MO_echo "Setting $var='$val'".
+		fi
+		eval "unset $tmp; export $var='$val'"
 	fi
+}
+
+_MO_unset_var() {
+	local -r var="$1"
+	local -r val="$2"
+	local -r tmp="$3"
 	
-	local leave_stmt
 	if is_set "$tmp"; then
 		local -r tmp_val="$(dereference "$tmp")"
-		leave_stmt="$var='$tmp_val'; unset $tmp"
-		[ -z "$leave_msg" ] && leave_msg="Restoring $var='$tmp_val'."
+		if [ "$MO_LOG_LEVEL" -ge 0 ]; then
+			MO_echo "Restoring $var='$tmp_val'."
+		fi
+		eval "$var='$tmp_val'; unset $tmp"
 	else
-		leave_stmt="unset $var"
-		[ -z "$leave_msg" ] && leave_msg="Unsetting $var'."
+		if [ "$MO_LOG_LEVEL" -ge 0 ]; then
+			MO_echo "Unsetting $var."
+		fi
+		eval "unset $var"
 	fi
-	
-	# Prepend any message to actions.
-	[ "$enter_msg" = '-' ] || enter_stmt="MO_echo \"$enter_msg\"; $enter_stmt"
-	[ "$leave_msg" = '-' ] || leave_stmt="MO_echo \"$leave_msg\"; $leave_stmt"
-	
-	# TODO Save some kind of entry such that the override chain of variables can be listed.
-	
-	MO_action_extend "$enter_stmt" "$leave_stmt"
 }
 
 # TODO Add function 'MO_unset_var'.
