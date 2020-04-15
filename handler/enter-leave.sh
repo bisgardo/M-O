@@ -133,9 +133,6 @@ MO_override_var() {
 	local -r var="$1"
 	local -r val="$2"
 	
-	local enter_msg="$3"
-	local leave_msg="$4"
-	
 	local tmp="$(MO_tmp_var_name "$var" "$dir")"
 	
 #	# Since all local variables are lower case by convention, requiring that
@@ -150,28 +147,23 @@ MO_override_var() {
 #		return 1
 #	fi
 	
-	MO_action_extend "_MO_set_var '$var' '$val' '$tmp' '$enter_msg'" "_MO_unset_var '$var' '$val' '$tmp' '$leave_msg'"
+	MO_action_extend "_MO_set_var '$var' '$val' '$tmp'" "_MO_unset_var '$var' '$val' '$tmp'" 
 }
 
 _MO_set_var() {
 	local -r var="$1"
 	local -r val="$2"
 	local -r tmp="$3"
-	local -r msg="$4"
 	
 	if is_set "$var"; then
 		local -r var_val="$(dereference "$var")"
-		if [ -z "$msg" ]; then
+		if [ "$MO_LOG_LEVEL" -ge 0 ]; then
 			MO_echo "Overriding $var='$val'".
-		elif [ "$msg" != '-' ]; then
-			MO_echo "$msg"
 		fi
 		eval "$tmp='$var_val'; $var='$val'"
 	else
-		if [ -z "$msg" ]; then
+		if [ "$MO_LOG_LEVEL" -ge 0 ]; then
 			MO_echo "Setting $var='$val'".
-		elif [ "$msg" != '-' ]; then
-			MO_echo "$msg"
 		fi
 		eval "unset $tmp; export $var='$val'"
 	fi
@@ -181,21 +173,16 @@ _MO_unset_var() {
 	local -r var="$1"
 	local -r val="$2"
 	local -r tmp="$3"
-	local -r msg="$4"
 	
 	if is_set "$tmp"; then
 		local -r tmp_val="$(dereference "$tmp")"
-		if [ -z "$msg" ]; then
+		if [ "$MO_LOG_LEVEL" -ge 0 ]; then
 			MO_echo "Restoring $var='$tmp_val'."
-		elif [ "$msg" != '-' ]; then
-			MO_echo "$msg"
 		fi
 		eval "$var='$tmp_val'; unset $tmp"
 	else
-		if [ -z "$msg" ]; then
+		if [ "$MO_LOG_LEVEL" -ge 0 ]; then
 			MO_echo "Unsetting $var."
-		elif [ "$msg" != '-' ]; then
-			MO_echo "$msg"
 		fi
 		eval "unset $var"
 	fi
