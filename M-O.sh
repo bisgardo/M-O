@@ -48,9 +48,7 @@ _MO_update() {
 	
 	# Common case.
 	if [ "$MO_CUR_DIR" = "$target_dir" ]; then
-		if [ "$MO_LOG_LEVEL" -ge 1 ]; then
-			MO_echo "(staying in $MO_CUR_DIR)"
-		fi
+		[ "$MO_LOG_LEVEL" -ge 1 ] && MO_echo "(staying in $MO_CUR_DIR)"
 		return $x
 	fi
 	
@@ -180,9 +178,7 @@ MO_debucho() {
 _MO_dirname() {
 	local -r dir="$1"
 	local -r result="$(dirname "$dir")"
-	if [ "$result" != '/' ]; then
-		builtin echo "$result"
-	fi
+	[ "$result" != '/' ] && builtin echo "$result"
 }
 
 # Arg 1: ancestor
@@ -212,9 +208,7 @@ join_stmts() {
 	local -r right="$2"
 	
 	local sep=''
-	if [ -n "$left" ] && [ -n "$right" ]; then
-		sep='; '
-	fi
+	[ -n "$left" ] && [ -n "$right" ] && sep='; '
 
 	builtin echo "$left$sep$right"
 }

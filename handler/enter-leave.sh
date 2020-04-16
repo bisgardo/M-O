@@ -52,9 +52,7 @@ _MO_echo_action() {
 		MO_errcho "$event event in non-existent dir '$dir'"
 		return 1
 	fi
-	if [ "$MO_LOG_LEVEL" -ge 1 ]; then
-		MO_echo "Executing action: $action"
-    fi
+	[ "$MO_LOG_LEVEL" -ge 1 ] && MO_echo "Executing action: $action"
 }
 
 ###############################
@@ -154,14 +152,10 @@ _MO_set_var() {
 	
 	if is_set "$var"; then
 		local -r var_val="$(dereference "$var")"
-		if [ "$MO_LOG_LEVEL" -ge 0 ]; then
-			MO_echo "Overriding $var='$val'".
-		fi
+		[ "$MO_LOG_LEVEL" -ge 0 ] && MO_echo "Overriding $var='$val'".
 		eval "$tmp='$var_val'; $var='$val'"
 	else
-		if [ "$MO_LOG_LEVEL" -ge 0 ]; then
-			MO_echo "Setting $var='$val'".
-		fi
+		[ "$MO_LOG_LEVEL" -ge 0 ] && MO_echo "Setting $var='$val'".
 		eval "unset $tmp; export $var='$val'"
 	fi
 }
@@ -173,14 +167,10 @@ _MO_unset_var() {
 	
 	if is_set "$tmp"; then
 		local -r tmp_val="$(dereference "$tmp")"
-		if [ "$MO_LOG_LEVEL" -ge 0 ]; then
-			MO_echo "Restoring $var='$tmp_val'."
-		fi
+		[ "$MO_LOG_LEVEL" -ge 0 ] && MO_echo "Restoring $var='$tmp_val'."
 		eval "$var='$tmp_val'; unset $tmp"
 	else
-		if [ "$MO_LOG_LEVEL" -ge 0 ]; then
-			MO_echo "Unsetting $var."
-		fi
+		[ "$MO_LOG_LEVEL" -ge 0 ] && MO_echo "Unsetting $var."
 		eval "unset $var"
 	fi
 }

@@ -39,7 +39,7 @@ The only difference in usage between the shells is which "register" file to sour
 In `.bashrc` and/or `.bash_profile`:
 
 	MO_PATH=/path/to/M-O
-	source "$MO_PATH/M-O.sh"                 # base module M-O
+	source "$MO_PATH/M-O.sh"                 # base module
 	source "$MO_PATH/register.bash"          # register M-O in bash shell
 	
 	source "$MO_PATH/handler/enter-leave.sh" # use default event handler (optional; see below)

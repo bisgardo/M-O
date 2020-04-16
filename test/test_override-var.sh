@@ -48,6 +48,8 @@ test_override_var() {
 	errcho ' - OK!'
 }
 
+# TODO Update results! And test '_MO_[un]set_var' separately!
+
 # TESTS: Set VAR to value "new" #
 
 (
