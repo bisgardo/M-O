@@ -6,26 +6,43 @@
 # Actions are intended to register themselves by extending this variable.
 MO_ACTION=''
 
-_MO_handle_event() {
+_MO_handle_enter() {
 	local on_enter=''
 	local on_leave=''
 	
 	local tmp_count=0
 	eval ${MO_ACTION}
 	
-	local -r func="on_$event"
-	local -r action="$(dereference "$func")"
+	local -r enter_action="$(dereference on_enter)"
+	local -r leave_action="$(dereference on_leave)"
 	
-	if [ -n "$action" ]; then
-		MO_log 1 "Executing $event action: $action"
-		_MO_eval_action ${action} # No quoting.
+	# Evaluate enter action.
+	if [ -n "$enter_action" ]; then
+		MO_log 1 "Executing enter action: $enter_action"
+		_MO_eval_action ${enter_action} # No quoting.
+	else
+		MO_log 2 "($event $dir)"
+	fi
+	
+	# Save leave action.
+	if [ -n "$leave_action" ]; then
+		MO_log 1 "Storing leave action: $leave_action"
+		eval "MO_LEAVE_${#dir}=$(quote leave_action)"
 	else
 		MO_log 2 "($event $dir)"
 	fi
 }
 
-MO_ENTER_HANDLER="_MO_handle_event;$MO_ENTER_HANDLER"
-MO_LEAVE_HANDLER="_MO_handle_event;$MO_LEAVE_HANDLER"
+_MO_handle_leave() {
+	local -r leave_action="$MO_LEAVE_${#dir}"
+	if [ -n "$leave_action" ]; then
+		MO_log 1 "Executing leave action: $leave_action"
+		_MO_eval_action ${leave_action} # No quoting.
+	fi
+}
+
+MO_ENTER_HANDLER="_MO_handle_enter;$MO_ENTER_HANDLER"
+MO_LEAVE_HANDLER="_MO_handle_leave;$MO_LEAVE_HANDLER"
 
 ####################
 # HELPER FUNCTIONS #
@@ -106,6 +123,9 @@ MO_tmp_var_name() {
 MO_override_var() {
 	local -r var="$1"
 	local -r val="$2"
+	
+	# TODO tmp_count shouldn't be necessary - var name doesn't have to be
+	#  reconstructible, so any unique string will do!
 	
 	local tmp="$(MO_tmp_var_name "$var" "$dir" "_$tmp_count")"
 	((tmp_count++))
