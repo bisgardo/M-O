@@ -17,10 +17,10 @@ _MO_handle_event() {
 	local -r action="$(dereference "$func")"
 	
 	if [ -n "$action" ]; then
-		_MO_echo_action "$dir" "$event" "$action"
+		MO_log 1 "Executing $event action: $action"
 		_MO_eval_action ${action} # No quoting.
-	elif [ "$MO_LOG_LEVEL" -ge 2 ]; then
-		MO_echo "($event $dir)"
+	else
+		MO_log 2 "($event $dir)"
 	fi
 }
 
@@ -32,27 +32,7 @@ MO_LEAVE_HANDLER="_MO_handle_event;$MO_LEAVE_HANDLER"
 ####################
 
 _MO_eval_action() {
-	if [ -z "$MO_DEBUG" ]; then
-		eval $@ || MO_errcho "Failed evaluating command: $@"
-	else
-		MO_debucho "Evaluate command: $@"
-	fi
-}
-
-# Arg 1: dir
-# Arg 2: event
-# Arg 3: action
-# Print a M-O message for an action to be executed.
-_MO_echo_action() {
-	local -r dir="$1"
-	local -r event="$2"
-	local -r action="$3"
-	
-	if [ ! -d "$dir" ]; then
-		MO_errcho "$event event in non-existent dir '$dir'"
-		return 1
-	fi
-	[ "$MO_LOG_LEVEL" -ge 1 ] && MO_echo "Executing action: $action"
+	eval $@ || MO_errcho "Failed evaluating command: $@"
 }
 
 ###############################
@@ -145,6 +125,8 @@ MO_override_var() {
 	MO_action_extend "_MO_set_var '$var' '$val' '$tmp'" "_MO_unset_var '$var' '$val' '$tmp'" 
 }
 
+# TODO Use quote function below.
+
 _MO_set_var() {
 	local -r var="$1"
 	local -r val="$2"
@@ -152,10 +134,10 @@ _MO_set_var() {
 	
 	if is_set "$var"; then
 		local -r var_val="$(dereference "$var")"
-		[ "$MO_LOG_LEVEL" -ge 0 ] && MO_echo "Overriding $var='$val'".
+		MO_log 0 "Overriding $var='$val'".
 		eval "$tmp='$var_val'; $var='$val'"
 	else
-		[ "$MO_LOG_LEVEL" -ge 0 ] && MO_echo "Setting $var='$val'".
+		MO_log 0 "Setting $var='$val'".
 		eval "unset $tmp; export $var='$val'"
 	fi
 }
@@ -167,10 +149,10 @@ _MO_unset_var() {
 	
 	if is_set "$tmp"; then
 		local -r tmp_val="$(dereference "$tmp")"
-		[ "$MO_LOG_LEVEL" -ge 0 ] && MO_echo "Restoring $var='$tmp_val'."
+		MO_log 0 "Restoring $var='$tmp_val'."
 		eval "$var='$tmp_val'; unset $tmp"
 	else
-		[ "$MO_LOG_LEVEL" -ge 0 ] && MO_echo "Unsetting $var."
+		MO_log 0 "Unsetting $var."
 		eval "unset $var"
 	fi
 }

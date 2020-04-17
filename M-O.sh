@@ -19,6 +19,7 @@ MO_CUR_DIR="$MO_CUR_DIR"
 MO_PROMPT_COMMAND='_MO_update "$(pwd -P)"'
 
 # Event handlers.
+# Is not exported to ensure that subshells build their state from scratch.
 MO_ENTER_HANDLER="$MO_ENTER_HANDLER"
 MO_LEAVE_HANDLER="$MO_LEAVE_HANDLER"
 
@@ -48,7 +49,7 @@ _MO_update() {
 	
 	# Common case.
 	if [ "$MO_CUR_DIR" = "$target_dir" ]; then
-		[ "$MO_LOG_LEVEL" -ge 1 ] && MO_echo "(staying in $MO_CUR_DIR)"
+		MO_log 1 "(staying in $MO_CUR_DIR)"
 		return $x
 	fi
 	
@@ -167,6 +168,20 @@ MO_debucho() {
 		_MO_echo_curious_head
 		>&2 echo " $msg"
 	fi
+}
+
+MO_log() {
+	local -r level="$1"
+	local -r msg="$2"
+	
+	[ "$MO_LOG_LEVEL" -ge "$level" ] &&
+		if [ "$level" -eq 0 ]; then
+			MO_echo "$msg"
+		elif [ "$level" -gt 0 ]; then
+			MO_debucho "$msg"
+		else
+			MO_errcho "$msg"
+		fi
 }
 
 ####################
