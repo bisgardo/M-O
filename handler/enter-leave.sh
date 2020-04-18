@@ -122,7 +122,7 @@ MO_override_var() {
 #		return 1
 #	fi
 	
-	MO_action_extend "_MO_set_var '$var' '$val' '$tmp'" "_MO_unset_var '$var' '$val' '$tmp'" 
+	MO_action_extend "_MO_set_var '$var' '$val' '$tmp'" "_MO_unset_var '$var' '$tmp'"
 }
 
 # TODO Use quote function below.
@@ -144,8 +144,7 @@ _MO_set_var() {
 
 _MO_unset_var() {
 	local -r var="$1"
-	local -r val="$2"
-	local -r tmp="$3"
+	local -r tmp="$2"
 	
 	if is_set "$tmp"; then
 		local -r tmp_val="$(dereference "$tmp")"
