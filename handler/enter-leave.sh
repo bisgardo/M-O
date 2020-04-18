@@ -10,11 +10,10 @@ _MO_handle_enter() {
 	local on_enter=''
 	local on_leave=''
 	
-	local tmp_count=0
 	eval ${MO_ACTION}
 	
-	local -r enter_action="$(dereference on_enter)"
-	local -r leave_action="$(dereference on_leave)"
+	local -r enter_action="$on_enter"
+	local -r leave_action="$on_leave"
 	
 	# Evaluate enter action.
 	if [ -n "$enter_action" ]; then
@@ -26,19 +25,23 @@ _MO_handle_enter() {
 	
 	# Save leave action.
 	if [ -n "$leave_action" ]; then
-		MO_log 1 "Storing leave action: $leave_action"
-		eval "MO_LEAVE_${#dir}=$(quote leave_action)"
+		local var="MO_LEAVE_${#dir}"
+		MO_log 1 "Storing leave action in $var: $leave_action"
+		eval "$var=$(quote "$leave_action")"
 	else
 		MO_log 2 "($event $dir)"
 	fi
 }
 
 _MO_handle_leave() {
-	local -r leave_action="$MO_LEAVE_${#dir}"
+	# Find previously stored leave action.
+	local -r var="MO_LEAVE_${#dir}"
+	local -r leave_action="$(dereference "$var")"
 	if [ -n "$leave_action" ]; then
 		MO_log 1 "Executing leave action: $leave_action"
 		_MO_eval_action ${leave_action} # No quoting.
 	fi
+	unset "$var"
 }
 
 MO_ENTER_HANDLER="_MO_handle_enter;$MO_ENTER_HANDLER"
@@ -106,14 +109,6 @@ MO_append_action() {
 
 # TODO Modularize such that the implementation of this can be swapped out with one that uses array (as stack of values).
 
-MO_tmp_var_name() {
-	local -r var="$1"
-	local -r dir="$2"
-	local -r suffix="$3"
-	
-	builtin echo "${var}_MO_${#dir}${suffix}"
-}
-
 # Register actions to set and restore a given variable on enter and leave, respectively.
 # Note that the concrete values assigned to on_enter and on_leave depend on the current environment:
 # In particular, when entering, the value computed for on_leave is not the same as when actually leaving.
@@ -124,11 +119,7 @@ MO_override_var() {
 	local -r var="$1"
 	local -r val="$2"
 	
-	# TODO tmp_count shouldn't be necessary - var name doesn't have to be
-	#  reconstructible, so any unique string will do!
-	
-	local tmp="$(MO_tmp_var_name "$var" "$dir" "_$tmp_count")"
-	((tmp_count++))
+	local tmp="${var}_MO_${#dir}_$RANDOM"
 	
 #	# Since all local variables are lower case by convention, requiring that
 #	# overridden variable isn't purely lower case ensures that such
