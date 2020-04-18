@@ -227,13 +227,36 @@ join_stmts() {
 
 	builtin echo "$left$sep$right"
 }
+export -f join_stmts
 
 # From 'https://stackoverflow.com/a/13864829/883073'.
 function is_set {
 	declare -p "$1" &>/dev/null
 }
+export -f is_set
 
 function dereference {
 	local -r var="$1"
 	eval builtin echo "\$$var" # Like "${!var}" but works in both bash and zsh.
 }
+export -f dereference
+
+# Generalization of quote from bash-completion to multiple argumentz	q:
+# For each argument, escape all single quotes and surround it with single quotes.
+# Output all the results joined by single space.
+# This ensures that the output can be used in both echo and eval correctly.
+# The function behaves identically to the original quote function for exactly one argument.
+# 
+# If no or multiple arguments are 
+# Minor incompatibility with the original quote function:
+# If no inputs are provided, this function produces no output.
+# The original one prints a quoted empty string.
+function quote() {
+	local p
+	for v in "$@"; do
+		local q="${v//\'/\'\\\'\'}"
+		printf "$p'%s'" "$q"
+		p=' '
+	done
+}
+export -f quote
