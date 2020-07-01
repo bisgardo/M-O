@@ -9,6 +9,11 @@
 # TODO Optionally add indicator to PS1 that override is in effect (e.g. "[GOPATH=../..]").
 # TODO Split into separate files.
 
+MO_append_path() {
+  local -r value="$1"
+  MO_override_var PATH "$PATH:$value"
+}
+
 # OVERRIDE AND RESTORE GOPATH #
 
 MO_set_gopath() {
