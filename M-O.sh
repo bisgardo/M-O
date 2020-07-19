@@ -14,12 +14,13 @@
 MO_CUR_DIR="$MO_CUR_DIR"
 
 # The command that's being evaluated before the shell shows the prompt.
-# It serves the exact same purpose as PROMPT_COMMAND, but works across shells.
+# It serves basically the same purpose as PROMPT_COMMAND,
+# but works across shells and adds customizability.
 # Is not exported to ensure that subshells build their state from scratch.
 MO_PROMPT_COMMAND='_MO_update "$(pwd -P)"'
 
 # Event handlers.
-# Is not exported to ensure that subshells build their state from scratch.
+# Are not exported to ensure that subshells build their state from scratch.
 MO_ENTER_HANDLER="$MO_ENTER_HANDLER"
 MO_LEAVE_HANDLER="$MO_LEAVE_HANDLER"
 
@@ -229,19 +230,37 @@ join_stmts() {
 }
 export -f join_stmts
 
+prepend_stmt() {
+	local -r var="$1"
+	local -r stmt="$2"
+	
+# TODO Verify...
+	local -r val="$(join_stmts "$stmt" "$(dereference "$var")")"
+	eval "$var=$(quote "$val")" # TODO Extract func for setting reference.
+}
+
+append_stmt() {
+	local -r var="$1"
+	local -r stmt="$2"
+	
+# TODO Verify...
+	local -r val="$(join_stmts "$(dereference "$var")" "$stmt")"
+	eval "$var=$(quote "$val")" # TODO Extract func for setting reference.
+}
+
 # From 'https://stackoverflow.com/a/13864829/883073'.
-function is_set {
+is_set() {
 	declare -p "$1" &>/dev/null
 }
 export -f is_set
 
-function dereference {
+dereference() {
 	local -r var="$1"
 	eval builtin echo "\$$var" # Like "${!var}" but works in both bash and zsh.
 }
 export -f dereference
 
-# Generalization of quote from bash-completion to multiple argumentz	q:
+# Generalization of quote from bash-completion to multiple arguments:
 # For each argument, escape all single quotes and surround it with single quotes.
 # Output all the results joined by single space.
 # This ensures that the output can be used in both echo and eval correctly.
@@ -251,7 +270,7 @@ export -f dereference
 # Minor incompatibility with the original quote function:
 # If no inputs are provided, this function produces no output.
 # The original one prints a quoted empty string.
-function quote() {
+quote() {
 	local p
 	for v in "$@"; do
 		local q="${v//\'/\'\\\'\'}"
