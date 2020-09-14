@@ -41,6 +41,8 @@ _MO_eval_action() {
 
 # TODO Add print capabilities to functions below.
 
+# TODO Swap names extend and inject, possibly renaming to insert/surround/...
+
 # Arg 1: enter_stmt ("enter" statement)
 # Arg 2: leave_stmt ("leave" statement)
 # Extend the return variables by appending enter_stmt to on_enter and prepending leave_stmt to on_leave.
@@ -65,9 +67,8 @@ MO_action_inject() {
 
 # Arg 1: enter_stmt ("enter" statement)
 # Arg 2: leave_stmt ("leave" statement)
-# Extend the return variables by prepending enter_stmt to on_enter and
-# leave_stmt to on_leave.
-MO_prepend_action() {
+# Extend the return variables by prepending enter_stmt to on_enter and leave_stmt to on_leave.
+MO_action_prepend() {
 	local -r enter_stmt="$1"
 	local -r leave_stmt="$2"
 	
@@ -77,9 +78,8 @@ MO_prepend_action() {
 
 # Arg 1: enter_stmt ("enter" statement)
 # Arg 2: leave_stmt ("leave" statement)
-# Extend the return variables by appending enter_stmt to on_enter and
-# leave_stmt to on_leave.
-MO_append_action() {
+# Extend the return variables by appending enter_stmt to on_enter and leave_stmt to on_leave.
+MO_action_append() {
 	local -r enter_stmt="$1"
 	local -r leave_stmt="$2"
 	
@@ -134,10 +134,10 @@ _MO_set_var() {
 	
 	if is_set "$var"; then
 		local -r var_val="$(dereference "$var")"
-		MO_log 0 "Overriding $var='$val'".
+		MO_log 0 "Overriding $var='$val'."
 		eval "$tmp='$var_val'; $var='$val'"
 	else
-		MO_log 0 "Setting $var='$val'".
+		MO_log 0 "Setting $var='$val'."
 		eval "unset $tmp; export $var='$val'"
 	fi
 }

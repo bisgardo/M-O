@@ -6,8 +6,21 @@
 #   defined in 'handler/enter-leave.sh' exists).
 
 # TODO Add checks and error handling for verifying that actions are applicable.
-# TODO Optionally add indicator to PS1 that override is in effect (e.g. "[GOPATH=../..]").
+# TODO Optionally add indicator to PS1 that some override is in effect (e.g. "[GOPATH=../..]").
 # TODO Split into separate files.
+# TODO Add functions for setting/unsetting alias (needs to store alias value in var to allow nesting).
+
+MO_with_message() {
+  local -r msg="$1"
+  local -r cmd="$2"
+
+  if [ -n "$msg" ]; then
+    MO_echo "$msg"
+  else
+    MO_echo "Evaluating command '$cmd'."
+  fi
+  eval "$cmd"
+}
 
 MO_append_path() {
   local -r value="$1"
