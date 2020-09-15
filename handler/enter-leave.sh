@@ -61,6 +61,8 @@ _MO_eval_action() {
 
 # TODO Add print capabilities to functions below.
 
+# TODO Swap names extend and inject, possibly renaming to insert/surround/...
+
 # Arg 1: enter_stmt ("enter" statement)
 # Arg 2: leave_stmt ("leave" statement)
 # Extend the return variables by appending enter_stmt to on_enter and prepending leave_stmt to on_leave.
@@ -85,8 +87,7 @@ MO_action_inject() {
 
 # Arg 1: enter_stmt ("enter" statement)
 # Arg 2: leave_stmt ("leave" statement)
-# Extend the return variables by prepending enter_stmt to on_enter and
-# leave_stmt to on_leave.
+# Extend the return variables by prepending enter_stmt to on_enter and leave_stmt to on_leave.
 MO_action_prepend() {
 	local -r enter_stmt="$1"
 	local -r leave_stmt="$2"
@@ -97,8 +98,7 @@ MO_action_prepend() {
 
 # Arg 1: enter_stmt ("enter" statement)
 # Arg 2: leave_stmt ("leave" statement)
-# Extend the return variables by appending enter_stmt to on_enter and
-# leave_stmt to on_leave.
+# Extend the return variables by appending enter_stmt to on_enter and leave_stmt to on_leave.
 MO_action_append() {
 	local -r enter_stmt="$1"
 	local -r leave_stmt="$2"
