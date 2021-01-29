@@ -8,6 +8,7 @@
 # TODO Add checks and error handling for verifying that actions are applicable.
 # TODO Optionally add indicator to PS1 that some override is in effect (e.g. "[GOPATH=../..]").
 # TODO Split into separate files.
+# TODO Much (all?) of the contents of this file should be loaded from scripts when needed - no need to carry it around all the time.
 # TODO Add functions for setting/unsetting alias (needs to store alias value in var to allow nesting).
 
 MO_with_message() {
@@ -44,23 +45,23 @@ _MO_create_python_virtualenv() {
 	local -r env_path="$1"
 	local -r env_args="$2"
 	
-	MO_echo 'Creating Python virtualenv'
+	MO_echo 'Creating Python virtualenv.'
 	if command -v virtualenv > /dev/null; then
 		eval "virtualenv '$env_path' $env_args"
 	else
-		MO_errcho "Cannot create Python virtualenv: command 'virtualenv' not found"
+		MO_errcho "Cannot create Python virtualenv: command 'virtualenv' not found."
 	fi
 }
 
 _MO_activate_python_virtualenv() {
 	local -r activate_path="$1"
 	
-	MO_echo 'Activating Python virtualenv'
+	MO_echo 'Activating Python virtualenv.'
 	source "$activate_path"
 }
 
 _MO_deactivate_python_virtualenv() {
-	MO_echo 'Deactivating Python virtualenv'
+	MO_echo 'Deactivating Python virtualenv.'
 	deactivate
 }
 
@@ -76,7 +77,7 @@ _MO_enter_python_virtualenv() {
 	if [ -f "$activate_path" ]; then
 		_MO_activate_python_virtualenv "$activate_path"
 	else
-		MO_errcho "Cannot activate non-existent Python virtualenv in '$env_path'"
+		MO_errcho "Cannot activate non-existent Python virtualenv in '$env_path'."
 	fi
 }
 
@@ -86,14 +87,19 @@ _MO_leave_python_virtualenv() {
 	if declare -f deactivate > /dev/null; then
 		_MO_deactivate_python_virtualenv
 	else
-		MO_errcho "Cannot deactivate non-active Python virtualenv in '$env_path'"
+		MO_errcho "Cannot deactivate non-active Python virtualenv in '$env_path'."
 	fi
 }
 
 MO_python_virtualenv() {
 	local -r env="$1"
 	local -r env_args="$2"
-	
+
+	if [ -z "$env" ]; then
+	  MO_errcho "MO_python_virtualenv: missing required arg 'env'."
+	  return 1
+  fi
+
 	local -r env_path="$dir/$env"
 	
 	local -r enter_stmt="_MO_enter_python_virtualenv '$env_path' '$env_args'"
@@ -109,14 +115,14 @@ _MO_set_nodejs_version() {
 	
 	if ! nvm list "$target_version" > /dev/null; then
 		MO_echo "Installing node.js version $target_version"
-		nvm install "$target_version" || MO_errcho "Could not install node.js version '$target_version'"
+		nvm install "$target_version" || MO_errcho "Could not install node.js version '$target_version'."
 	fi
 	
 	if [ "$current_version" = "$target_version" ]; then
-		MO_echo "Already using node.js version '$target_version'"
+		MO_echo "Already using node.js version '$target_version'."
 	else
 		MO_echo "Setting node.js version '$target_version'"
-		nvm use "$target_version" || MO_errcho "Could not set node.js version '$target_version'"
+		nvm use "$target_version" || MO_errcho "Could not set node.js version '$target_version'."
 	fi
 }
 
