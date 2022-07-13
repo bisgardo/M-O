@@ -41,69 +41,58 @@ MO_set_gopath_default() {
 
 # ACTIVATE AND DEACTIVATE PYTHON ENVIRONMENT #
 
-_MO_create_python_virtualenv() {
-	local -r env_path="$1"
-	local -r env_args="$2"
+_MO_create_python_venv() {
+	local -r venv_path="$1"
 	
-	MO_echo 'Creating Python virtualenv.'
-	if command -v virtualenv > /dev/null; then
-		eval "virtualenv '$env_path' $env_args"
-	else
-		MO_errcho "Cannot create Python virtualenv: command 'virtualenv' not found."
-	fi
+	MO_echo "Creating Python virtual environment in '$venv_path'."
+	python -m venv "$venv_path"
 }
 
-_MO_activate_python_virtualenv() {
-	local -r activate_path="$1"
+_MO_activate_python_venv() {
+	local -r venv_path="$1"
+	local -r activate_script='bin/activate'
 	
-	MO_echo 'Activating Python virtualenv.'
-	source "$activate_path"
-}
-
-_MO_deactivate_python_virtualenv() {
-	MO_echo 'Deactivating Python virtualenv.'
-	deactivate
-}
-
-_MO_enter_python_virtualenv() {
-	local -r env_path="$1"
-	local -r env_args="$2"
-	
-	# Create virtualenv if it doesn't exist.
-	[ ! -e "$env_path" ] && _MO_create_python_virtualenv "$env_path" "$env_args"
-	
-	# Activate virtualenv if it exists.
-	local -r activate_path="$env_path/bin/activate"
+	MO_echo 'Activating Python virtual environment.'
+	local -r activate_path="$venv_path/$activate_script"
 	if [ -f "$activate_path" ]; then
-		_MO_activate_python_virtualenv "$activate_path"
+		source "$activate_path"
 	else
-		MO_errcho "Cannot activate non-existent Python virtualenv in '$env_path'."
+		MO_errcho "Cannot activate non-existent Python virtual environment in '$venv_path'."
 	fi
 }
 
-_MO_leave_python_virtualenv() {
-	local -r env_path="$1"
+_MO_deactivate_python_venv() {
+	local -r venv_path="$1"
 	
+	MO_echo 'Deactivating Python virtual environment.'
 	if declare -f deactivate > /dev/null; then
-		_MO_deactivate_python_virtualenv
+		deactivate
 	else
-		MO_errcho "Cannot deactivate non-active Python virtualenv in '$env_path'."
+		MO_errcho "Cannot deactivate non-active Python virtual environment in '$venv_path'."
 	fi
 }
 
-MO_python_virtualenv() {
-	local -r env="$1"
-	local -r env_args="$2"
-
-	if [ -z "$env" ]; then
-	  MO_errcho "MO_python_virtualenv: missing required arg 'env'."
-	  return 1
-  fi
-
-	local -r env_path="$dir/$env"
+_MO_enter_python_venv() {
+	local -r venv_path="$1"
 	
-	local -r enter_stmt="_MO_enter_python_virtualenv '$env_path' '$env_args'"
-	local -r leave_stmt="_MO_leave_python_virtualenv '$env_path'"
+	# Create virtual environment if it doesn't exist.
+	[ ! -e "$venv_path" ] && _MO_create_python_venv "$venv_path"
+	
+	# Activate virtual environment if it exists.
+	_MO_activate_python_venv "$venv_path"
+}
+
+_MO_leave_python_venv() {
+	local -r venv_path="$1"
+	_MO_deactivate_python_venv "$venv_path"
+}
+
+MO_python_venv() {
+	local -r venv_dir="${1-venv}"
+	
+	local -r venv_path="$dir/$venv_dir"
+	local -r enter_stmt="_MO_enter_python_venv '$venv_path'"
+	local -r leave_stmt="_MO_leave_python_venv '$venv_path'"
 	MO_action_extend "$enter_stmt" "$leave_stmt"
 }
 
@@ -114,15 +103,15 @@ _MO_set_nodejs_version() {
 	local -r target_version="$2"
 	
 	if ! nvm list "$target_version" > /dev/null; then
-		MO_echo "Installing node.js version $target_version"
-		nvm install "$target_version" || MO_errcho "Could not install node.js version '$target_version'."
+		MO_echo "Installing node.js version '$target_version'."
+		nvm install "$target_version" || MO_errcho "Cannot install node.js version '$target_version'."
 	fi
 	
 	if [ "$current_version" = "$target_version" ]; then
 		MO_echo "Already using node.js version '$target_version'."
 	else
-		MO_echo "Setting node.js version '$target_version'"
-		nvm use "$target_version" || MO_errcho "Could not set node.js version '$target_version'."
+		MO_echo "Setting node.js version '$target_version'."
+		nvm use "$target_version" || MO_errcho "Cannot set node.js version '$target_version'."
 	fi
 }
 
