@@ -230,6 +230,24 @@ join_stmts() {
 }
 export -f join_stmts
 
+prepend_stmt() {
+	local -r var="$1"
+	local -r stmt="$2"
+	
+# TODO Verify...
+	local -r val="$(join_stmts "$stmt" "$(dereference "$var")")"
+	eval "$var=$(quote "$val")" # TODO Extract func for setting reference.
+}
+
+append_stmt() {
+	local -r var="$1"
+	local -r stmt="$2"
+	
+# TODO Verify...
+	local -r val="$(join_stmts "$(dereference "$var")" "$stmt")"
+	eval "$var=$(quote "$val")" # TODO Extract func for setting reference.
+}
+
 # From 'https://stackoverflow.com/a/13864829/883073'.
 is_set() {
 	declare -p "$1" &>/dev/null
